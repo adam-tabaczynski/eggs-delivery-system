@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local env
+.env
+
+# Test / tooling caches
+.pytest_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store

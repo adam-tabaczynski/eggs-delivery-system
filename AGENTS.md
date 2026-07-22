@@ -6,7 +6,7 @@ Customers set a house location and order eggs for a delivery cycle.
 Provider opens cycles with cutoff + max egg capacity (FCFS).
 
 ## Current phase
-Initial uv / Python 3.13 scaffolding is on `master` (`.gitignore`, `.python-version`, `pyproject.toml`, `uv.lock`).
+Initial uv / Python 3.13 scaffolding is on `main` (`.gitignore`, `.python-version`, `pyproject.toml`, `uv.lock`).
 **Phase 0 has not started yet** (no app package, Docker, or `/health` committed).
 
 ## Stack (locked for upcoming work)
@@ -26,6 +26,24 @@ Initial uv / Python 3.13 scaffolding is on `master` (`.gitignore`, `.python-vers
 - Location fields on Customer; optional depot on Provider later
 - Orders only before `cutoff_at`; capacity `sum(qty) <= max_eggs`
 - One open order per customer per cycle
+
+## Git conventions
+Solo workflow: short-lived branches off `main`, then merge back.
+
+**Commits:** imperative, succinct subject (about 50–72 chars). Body only when needed.
+
+**Branch prefixes:**
+
+| Prefix | Use for |
+|--------|---------|
+| `feat/` | New behavior |
+| `fix/` | Bug fixes |
+| `docs/` | Docs only (README, AGENTS, comments) |
+| `chore/` | Tooling, deps, ignore rules, agent rules with no product change |
+| `test/` | Tests only |
+| `refactor/` | Restructure with no behavior change |
+
+Examples: `feat/phase-0-scaffold`, `fix/health-response`, `chore/pytest-env`.
 
 ## Next
 Phase 0: FastAPI `/health`, Docker Compose (api + PostGIS), `.env.example`, README, health smoke test.

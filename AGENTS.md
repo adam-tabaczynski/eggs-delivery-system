@@ -6,14 +6,14 @@ Customers set a house location and order eggs for a delivery cycle.
 Provider opens cycles with cutoff + max egg capacity (FCFS).
 
 ## Current phase
-Initial uv / Python 3.13 scaffolding is on `main` (`.gitignore`, `.python-version`, `pyproject.toml`, `uv.lock`).
-**Phase 0 has not started yet** (no app package, Docker, or `/health` committed).
+**Phase 0** — sync FastAPI skeleton (`GET /health`), Docker Compose (api + PostGIS), `.env.example`, health smoke test.
+Pre–Phase 0 scaffolding and docs are on `main`; Phase 0 lands via `feat/phase-0-scaffold`.
 
-## Stack (locked for upcoming work)
+## Stack
 - Python 3.13, uv, FastAPI **synchronous** (`def` routes)
 - SQLAlchemy sync + psycopg
 - Postgres + PostGIS (Docker)
-- pytest + pytest-env (`DATABASE_URL` in `pyproject.toml` when tests arrive)
+- pytest + pytest-env (`DATABASE_URL` in `pyproject.toml`)
 - Config: `app_name` may have a default; `database_url` must come from env
 
 ## Working style
@@ -46,4 +46,4 @@ Solo workflow: short-lived branches off `main`, then merge back.
 Examples: `feat/phase-0-scaffold`, `fix/health-response`, `chore/pytest-env`.
 
 ## Next
-Phase 0: FastAPI `/health`, Docker Compose (api + PostGIS), `.env.example`, README, health smoke test.
+Merge Phase 0 to `main`, then Phase 1: Provider/Customer, cycles, orders (sync MVP domain).

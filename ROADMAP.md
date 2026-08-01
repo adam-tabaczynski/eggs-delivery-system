@@ -14,11 +14,11 @@ Checklist for Doorstep Eggs. Mark items done when they land on `main`.
 
 Sync FastAPI app runnable locally via Docker.
 
-- [ ] Flat `app/` package with config + sync SQLAlchemy setup
-- [ ] `GET /health`
-- [ ] `Dockerfile` + `docker-compose.yml` (api + PostGIS)
-- [ ] `.env.example` (`DATABASE_URL` required at runtime)
-- [ ] pytest smoke test for `/health`
+- [x] Flat `app/` package with config + sync SQLAlchemy setup
+- [x] `GET /health`
+- [x] `Dockerfile` + `docker-compose.yml` (api + PostGIS)
+- [x] `.env.example` (`DATABASE_URL` required at runtime)
+- [x] pytest smoke test for `/health`
 
 ## Phase 1 — MVP domain (sync)
 

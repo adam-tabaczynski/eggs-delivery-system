@@ -1,0 +1,1 @@
+"""Doorstep Eggs application package."""

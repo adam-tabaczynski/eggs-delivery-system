@@ -1,0 +1,47 @@
+---
+description: Layer ownership under app/
+globs: app/**/*.py
+alwaysApply: false
+---
+
+# app/ layer ownership
+
+All application source lives under `app/`.
+
+## Roles
+
+- `controllers/` — thin FastAPI routes; call commands/queries only; no Session
+- `commands/` — write use-cases; may own business rules
+- `queries/` — read use-cases; may own business rules
+- `repositories/` — Session + model access only (get/save/aggregate); no policy
+- `exceptions/` — domain / business-rule errors
+- `core/` — config, db, clock; interfaces only when a second implementation exists
+- `models.py` / `schemas.py` — mapped classes and HTTP DTOs inside `app/` (split to packages later if needed)
+
+## Shape
+
+- Flat modules by concern (e.g. `commands/orders.py`); no per-domain packages
+- No extra `services/` layer on top of commands/queries
+
+## Examples
+
+```python
+# BAD — Session in a controller
+def create_order(session: Session, ...):
+    session.add(...)
+
+# GOOD — controller calls a command
+def create_order(...):
+    return place_order(...)
+```
+
+```python
+# BAD — capacity policy inside a repository
+def add_order(...):
+    if total + qty > max_eggs:
+        raise ...
+
+# GOOD — repository aggregates; command/query enforces policy
+committed = repo.sum_quantity(cycle_id)
+# use-case compares committed + qty to max_eggs
+```

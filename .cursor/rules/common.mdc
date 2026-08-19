@@ -5,10 +5,19 @@ alwaysApply: true
 
 # Common constraints
 
-- Use **sync** FastAPI and SQLAlchemy until an explicit async migration phase.
-- Do not add asyncpg, asyncio SQLAlchemy, or aiosmtplib unless asked.
-- Keep the layout flat under `app/`; avoid premature packages/services/repositories.
-- Load config via pydantic-settings; never hardcode `DATABASE_URL` in app code.
-- Put test env defaults in `pyproject.toml` `[tool.pytest.ini_options].env`, not conftest.
-- Do not commit `.env`; keep `.env.example` in sync when env keys change.
-- Do not implement payments, multi-provider, waitlist, or AWS wiring unless requested.
+## Dependencies
+
+- Do not re-list the stack here — see **Stack** in `AGENTS.md` (source of truth).
+- Stick to that stack; do not add dependencies or change paradigms (e.g. async) unless the user asks or `ROADMAP.md` has reached that work.
+
+## Config & env
+
+- Load settings via pydantic-settings.
+- Never hardcode environment values in app or test code.
+- Test env defaults live in `pyproject.toml` `[tool.pytest.ini_options].env` (not conftest, not hardcoded in tests).
+- Do not commit `.env`; keep `.env.example` in sync when keys change.
+
+## Scope
+
+- Follow `ROADMAP.md` and explicit user requests.
+- Do not implement features ahead of the roadmap checklist or invent unrequested work.

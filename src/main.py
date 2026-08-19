@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.config import get_settings
+from src.config import get_settings
 
 settings = get_settings()
 

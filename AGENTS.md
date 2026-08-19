@@ -12,10 +12,10 @@ Provider opens cycles with cutoff + max egg capacity (FCFS).
 - pytest + pytest-env
 
 ## Architecture
-Target multilayer under `app/` — by concern, not by domain (dirs appear as Phase 1 lands):
+Target multilayer under `src/` — by concern, not by domain (dirs appear as Phase 1 lands):
 
 ```
-app/
+src/
   main.py            # app factory / router wiring only
   controllers/       # thin FastAPI routes
   commands/          # write use-cases

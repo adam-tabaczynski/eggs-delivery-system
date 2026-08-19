@@ -39,7 +39,7 @@ Requires Postgres/PostGIS reachable at `DATABASE_URL` from `.env`.
 
 ```bash
 uv sync
-uv run uvicorn app.main:app --reload
+uv run uvicorn src.main:app --reload
 ```
 
 ## Tests

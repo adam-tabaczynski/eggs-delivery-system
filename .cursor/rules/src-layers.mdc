@@ -1,12 +1,12 @@
 ---
-description: Layer ownership under app/
-globs: app/**/*.py
+description: Layer ownership under src/
+globs: src/**/*.py
 alwaysApply: false
 ---
 
-# app/ layer ownership
+# src/ layer ownership
 
-All application source lives under `app/`.
+All application source lives under `src/`.
 
 ## Roles
 
@@ -16,7 +16,7 @@ All application source lives under `app/`.
 - `repositories/` — Session + model access only (get/save/aggregate); no policy
 - `exceptions/` — domain / business-rule errors
 - `core/` — config, db, clock; interfaces only when a second implementation exists
-- `models.py` / `schemas.py` — mapped classes and HTTP DTOs inside `app/` (split to packages later if needed)
+- `models.py` / `schemas.py` — mapped classes and HTTP DTOs inside `src/` (split to packages later if needed)
 
 ## Shape
 

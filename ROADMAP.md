@@ -22,15 +22,39 @@ Sync FastAPI app runnable locally via Docker.
 
 ## Phase 1 — MVP domain (sync)
 
-- [ ] `Provider` (seeded) and `Customer` registration (location on Customer)
-- [ ] Customer location as PostGIS `Geography(Point, 4326)` via GeoAlchemy2
-- [ ] Delivery cycles: create/list (provider); list open cycles (customer)
-- [ ] Orders: place/update/cancel before cutoff with FCFS capacity checks
-- [ ] One open order per customer per cycle
-- [ ] Provider view: cycle orders + committed eggs vs `max_eggs`
+No auth yet (deferred to Phase 2). No customer/provider location yet (Phase 2).
+Caller passes `provider_id` / `customer_id` where needed.
 
-## Phase 2 — Geospatial value
+### Identity
+- [ ] `Provider`: `id`, `name`, `email` (unique), `created_at`, `updated_at`
+- [ ] `Customer`: `id`, `first_name`, `last_name`, `email` (unique), `created_at`, `updated_at`
+- [ ] Idempotent Compose seed for one Provider (SQL; no provider register API)
+- [ ] Customer registration endpoint
 
+### Delivery cycles
+- [ ] `DeliveryCycle`: `id`, `provider_id`, `delivery_at`, `cutoff_at`, `max_eggs`, `status` (`open` / `closed`), `created_at`, `updated_at`
+- [ ] Provider: create cycle; list cycles by `provider_id`
+- [ ] Provider: explicit close; also treat as closed when `now >= cutoff_at`
+- [ ] Customer: list cycles (open + past; filtering later)
+
+### Orders
+- [ ] `Order`: `id`, `cycle_id`, `customer_id`, `quantity` (≥ 1), `status` (`open` / `cancelled`), `created_at`, `updated_at`
+- [ ] Place / update quantity / soft-cancel only before cutoff while cycle open
+- [ ] FCFS capacity: sum of open quantities ≤ `max_eggs`
+- [ ] One open order per customer per cycle; POST when one exists → 409 (use PATCH)
+- [ ] Provider: list orders for a cycle (open + cancelled)
+- [ ] Provider: committed open eggs vs `max_eggs` for a cycle
+
+## Phase 2 — Auth, ops & geospatial
+
+### Auth & cycle ops
+- [ ] Email + password auth for Provider and Customer
+- [ ] `current_provider` / `current_customer` dependencies (stop passing ids for authz)
+- [ ] Provider: update delivery cycle
+
+### Geospatial
+- [ ] Customer sets house location (`Geography(Point, 4326)` via GeoAlchemy2)
+- [ ] Optional `Provider.depot_location`
 - [ ] Cycle customers with coordinates
 - [ ] Distances from `Provider.depot_location`
 - [ ] Simple stop ordering (greedy nearest-neighbor)

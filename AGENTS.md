@@ -2,33 +2,41 @@
 
 ## What this is
 Single-provider egg delivery API: one Provider, many Customers.
-Customers set a house location and order eggs for a delivery cycle.
+Customers order eggs for a delivery cycle.
 Provider opens cycles with cutoff + max egg capacity (FCFS).
-
-## Current phase
-**Phase 0** — sync FastAPI skeleton (`GET /health`), Docker Compose (api + PostGIS), `.env.example`, health smoke test.
-Pre–Phase 0 scaffolding and docs are on `main`; Phase 0 lands via `feat/phase-0-scaffold`.
 
 ## Stack
 - Python 3.13, uv, FastAPI **synchronous** (`def` routes)
 - SQLAlchemy sync + psycopg
 - Postgres + PostGIS (Docker)
-- pytest + pytest-env (`DATABASE_URL` in `pyproject.toml`)
-- Config: `app_name` may have a default; `database_url` must come from env
+- pytest + pytest-env
 
-## Working style
-- Flat `app/` layout when Phase 0 begins — no layers/repos/DDD yet
-- Small steps; do not jump to async, SES, SQS, or AWS deploy early
-- Prefer editing existing files over new abstractions
+## Architecture
+Target multilayer under `app/` — by concern, not by domain (dirs appear as Phase 1 lands):
 
-## Domain rules (when implementing)
+```
+app/
+  main.py            # app factory / router wiring only
+  controllers/       # thin FastAPI routes
+  commands/          # write use-cases
+  queries/           # read use-cases
+  repositories/      # Session + model access
+  exceptions/        # domain / business-rule errors
+  core/              # config, db, clock
+  models.py          # SQLAlchemy mapped classes
+  schemas.py         # Pydantic request/response DTOs
+```
+
+## Domain
 - Separate `Customer` and `Provider` tables (no shared User + role)
-- Location fields on Customer; optional depot on Provider later
-- Orders only before `cutoff_at`; capacity `sum(qty) <= max_eggs`
-- One open order per customer per cycle
+- Seed one Provider; customers register
+- Cycles: provider create/list; customers list open cycles
+- Orders only before `cutoff_at`; capacity `sum(qty) <= max_eggs` (FCFS)
+- One open order per customer per cycle (update quantity instead of a second open order)
+- Provider view: orders for a cycle + committed eggs vs `max_eggs`
 
-## Git conventions
-Solo workflow: short-lived branches off `main`, then merge back.
+## Git
+Solo workflow: short-lived branches, then merge back.
 
 **Commits:** imperative, succinct subject (about 50–72 chars). Body only when needed.
 
@@ -43,7 +51,13 @@ Solo workflow: short-lived branches off `main`, then merge back.
 | `test/` | Tests only |
 | `refactor/` | Restructure with no behavior change |
 
-Examples: `feat/phase-0-scaffold`, `fix/health-response`, `chore/pytest-env`.
+**Phase integration** (e.g. `feat/phase-1-mvp-domain`):
+- Long-lived phase branch off `main`; merge to `main` **without** squash
+- Short-lived feature branches **squash-merge** onto the phase branch
 
-## Next
-Merge Phase 0 to `main`, then Phase 1: Provider/Customer, cycles, orders (sync MVP domain).
+Examples: `feat/phase-1-mvp-domain`, `fix/order-capacity`, `chore/pytest-env`.
+
+## Pointers
+- [ROADMAP.md](ROADMAP.md) — phases and checklist
+- [README.md](README.md) — run locally
+- [.cursor/rules/](.cursor/rules/) — coding constraints

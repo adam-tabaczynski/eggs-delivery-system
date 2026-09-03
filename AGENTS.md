@@ -7,7 +7,7 @@ Provider opens cycles with cutoff + max egg capacity (FCFS).
 
 ## Stack
 - Python 3.13, uv, FastAPI **synchronous** (`def` routes)
-- SQLAlchemy sync + psycopg
+- SQLAlchemy sync + psycopg + Alembic
 - Postgres + PostGIS (Docker)
 - pytest + pytest-env
 

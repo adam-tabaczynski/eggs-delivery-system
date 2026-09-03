@@ -30,10 +30,18 @@ Caller passes `provider_id` / `customer_id` where needed.
 ### Identity
 
 - [x] Install `Alembic` - database migration tool
-- [ ] `Provider`: `id`, `name`, `email` (unique), `created_at`, `updated_at`
-- [ ] `Customer`: `id`, `first_name`, `last_name`, `email` (unique), `created_at`, `updated_at` 
-- [ ] Generate migration files
-- [ ] Idempotent SQL seed for one Provider (`docker/seed.sql`, after migrations; no provider register API)
+- [x] `Provider`: `id`, `name`, `email` (unique), `created_at`, `updated_at`
+- [x] `Customer`: `id`, `first_name`, `last_name`, `email` (unique), `created_at`, `updated_at`
+- [x] Generate migration files
+- [x] Idempotent SQL seed for one Provider (`docker/seed.sql`, after migrations; no provider register API)
+
+
+
+### Application layers
+
+First write path; this is where the multilayer dirs land so Delivery cycles and Orders stay thin.
+
+- [ ] `controllers/`, `commands/`, `repositories/`, `exceptions/` (flat modules by concern)
 - [ ] Customer registration endpoint
 
 

@@ -8,7 +8,7 @@ Single-provider egg delivery portal: customers order eggs for scheduled doorstep
 - FastAPI (synchronous)
 - uv
 - Postgres + PostGIS (via Docker)
-- SQLAlchemy (sync) + psycopg
+- SQLAlchemy (sync) + psycopg + Alembic
 - pytest
 
 ## Quick start
@@ -24,6 +24,15 @@ Run API + PostGIS:
 ```bash
 docker compose up --build
 ```
+
+Schema and seed are not applied on container start. After Postgres is up, apply migrations when you choose, then seed one Provider (`provider@doorstep-eggs.local`). There is no provider registration API.
+
+```bash
+uv run alembic upgrade head
+docker compose exec -T db psql -U eggs -d doorstep_eggs -v ON_ERROR_STOP=1 -f - < docker/seed.sql
+```
+
+The insert is idempotent (`ON CONFLICT (email) DO NOTHING`). User and database names match `.env.example`.
 
 Health check:
 

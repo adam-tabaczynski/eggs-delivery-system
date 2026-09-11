@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy import select
 
-from src.core.integrations.sqlalchemy import SessionFactory, SqlAlchemyUnitOfWork
+from src.core.integrations.sqlalchemy.session import SessionFactory
+from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 from src.models import Customer
 from tests.helpers import unique_email
 

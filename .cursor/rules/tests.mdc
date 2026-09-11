@@ -14,6 +14,8 @@ alwaysApply: false
 
 ## Rules
 
-- Prefer FakeUoW over patching `SessionFactory`
+- Prefer FakeUoW / FakeRepo over patching `SessionFactory` or mocking SQLAlchemy `Session`
+- Put shared test doubles in `tests/fakes.py` (implement the `UnitOfWork` / repository Protocols explicitly); keep them out of `src/`
+- Split into `tests/fakes/` only when that file grows large; one-off doubles may live next to a single test module
 - Flat modules by concern under each bucket; no per-domain test packages
 - Shared fixtures in root `conftest.py`; tiny pure helpers in `helpers.py`

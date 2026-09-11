@@ -36,6 +36,7 @@ tests/
   functional/    # HTTP via TestClient
   conftest.py
   helpers.py
+  fakes.py       # shared FakeUoW / FakeRepo (Protocol impls; not under src/)
 ```
 
 ## Domain

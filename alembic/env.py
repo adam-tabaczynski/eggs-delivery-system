@@ -1,13 +1,16 @@
 from logging.config import fileConfig
+from collections.abc import MutableMapping
+from typing import Literal
 
 from sqlalchemy import create_engine
 from sqlalchemy import pool
+from sqlalchemy.schema import SchemaItem
 
 from alembic import context
 
 from src.settings import get_settings
 from src.core.integrations.sqlalchemy import Base
-from src.models import Customer, Provider
+from src.models import Customer, Provider  # noqa: F401 — register metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,15 +25,38 @@ target_metadata = Base.metadata
 
 database_url = get_settings().database_url
 
+_IncludeType = Literal[
+    "schema",
+    "table",
+    "column",
+    "index",
+    "unique_constraint",
+    "foreign_key_constraint",
+    "check_constraint",
+]
 
-def include_name(name: str | None, type_: str, parent_names: dict[str, str]) -> bool:
+
+def include_name(
+    name: str | None,
+    type_: _IncludeType,
+    parent_names: MutableMapping[
+        Literal["schema_name", "table_name", "schema_qualified_table_name"],
+        str | None,
+    ],
+) -> bool:
     # Called before reflection. False for a schema skips that schema entirely.
     if type_ == "schema":
         return name in (None, "public")
     return True
 
 
-def include_object(object: object, name: str, type_: str, reflected: bool, compare_to: object) -> bool:
+def include_object(
+    object: SchemaItem,
+    name: str | None,
+    type_: _IncludeType,
+    reflected: bool,
+    compare_to: SchemaItem | None,
+) -> bool:
     if type_ == "table":
         return name in target_metadata.tables
     return True

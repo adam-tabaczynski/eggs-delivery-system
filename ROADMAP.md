@@ -39,10 +39,10 @@ Caller passes `provider_id` / `customer_id` where needed.
 
 First write path; this is where the multilayer dirs land so Delivery cycles and Orders stay thin.
 
-- [ ] Unit of Work pattern
-- [ ] `controllers/`, `commands/`, `repositories/`, `exceptions/` (flat modules by concern)
-- [ ] `tests/`: `unit/` / `integration/` / `functional/` (FakeUoW in unit; agent test guidance)
-- [ ] Customer registration endpoint
+- [x] Unit of Work pattern
+- [x] `controllers/`, `commands/`, `repositories/`, `exceptions/` (flat modules by concern)
+- [x] `tests/`: `unit/` / `integration/` / `functional/` (FakeUoW in unit; agent test guidance)
+- [x] Customer registration endpoint
 
 
 

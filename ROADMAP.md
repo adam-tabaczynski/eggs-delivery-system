@@ -25,8 +25,6 @@ Sync FastAPI app runnable locally via Docker.
 No auth yet (deferred to Phase 2). No customer/provider location yet (Phase 2).  
 Caller passes `provider_id` / `customer_id` where needed.
 
-
-
 ### Identity
 
 - [x] Install `Alembic` - database migration tool
@@ -41,6 +39,7 @@ Caller passes `provider_id` / `customer_id` where needed.
 
 First write path; this is where the multilayer dirs land so Delivery cycles and Orders stay thin.
 
+- [ ] Unit of Work pattern
 - [ ] `controllers/`, `commands/`, `repositories/`, `exceptions/` (flat modules by concern)
 - [ ] Customer registration endpoint
 

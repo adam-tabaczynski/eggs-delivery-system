@@ -22,7 +22,7 @@ src/
   queries/           # read use-cases
   repositories/      # Session + model access
   exceptions/        # domain / business-rule errors
-  core/              # config, db, clock
+  core/              # interfaces + integrations (e.g. SQLAlchemy UoW); settings at src/settings.py
   models.py          # SQLAlchemy mapped classes
   schemas.py         # Pydantic request/response DTOs
 ```

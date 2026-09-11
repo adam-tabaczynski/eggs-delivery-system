@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.db import Base
+from src.core.integrations.sqlalchemy import Base
 
 
 class Provider(Base):

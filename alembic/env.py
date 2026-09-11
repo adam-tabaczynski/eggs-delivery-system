@@ -5,8 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.config import get_settings
-from src.db import Base
+from src.settings import get_settings
+from src.core.integrations.sqlalchemy import Base
 from src.models import Customer, Provider
 
 # this is the Alembic Config object, which provides

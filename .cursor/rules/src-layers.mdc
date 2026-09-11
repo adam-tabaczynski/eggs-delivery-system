@@ -15,7 +15,7 @@ All application source lives under `src/`.
 - `queries/` — read use-cases; may own business rules
 - `repositories/` — Session + model access only (get/save/aggregate); no policy
 - `exceptions/` — domain / business-rule errors
-- `core/` — config, db, clock; interfaces only when a second implementation exists
+- `core/` — interfaces + integrations (e.g. SQLAlchemy engine/Base/UoW); settings stay at `src/settings.py`; clock later
 - `models.py` / `schemas.py` — mapped classes and HTTP DTOs inside `src/` (split to packages later if needed)
 
 ## Shape

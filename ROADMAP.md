@@ -25,8 +25,6 @@ Sync FastAPI app runnable locally via Docker.
 No auth yet (deferred to Phase 2). No customer/provider location yet (Phase 2).  
 Caller passes `provider_id` / `customer_id` where needed.
 
-
-
 ### Identity
 
 - [x] Install `Alembic` - database migration tool
@@ -41,13 +39,16 @@ Caller passes `provider_id` / `customer_id` where needed.
 
 First write path; this is where the multilayer dirs land so Delivery cycles and Orders stay thin.
 
+- [ ] Unit of Work pattern
 - [ ] `controllers/`, `commands/`, `repositories/`, `exceptions/` (flat modules by concern)
+- [ ] `tests/`: `unit/` / `integration/` / `functional/` (FakeUoW in unit; agent test guidance)
 - [ ] Customer registration endpoint
 
 
 
 ### Delivery cycles
 
+- [ ] Granular exceptions (domain errors + DB/infrastructure wrappers)
 - [ ] `DeliveryCycle`: `id`, `provider_id`, `delivery_at`, `cutoff_at`, `max_eggs`, `status` (`open` / `closed`), `created_at`, `updated_at`
 - [ ] Provider: create cycle; list cycles by `provider_id`
 - [ ] Provider: explicit close; also treat as closed when `now >= cutoff_at`
@@ -73,6 +74,7 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 ### Auth & cycle ops
 
 - [ ] Email + password auth for Provider and Customer
+- [ ] Pydantic `EmailStr` (+ `email-validator`) on auth and identity payloads
 - [ ] `current_provider` / `current_customer` dependencies (stop passing ids for authz)
 - [ ] Provider: update delivery cycle
 

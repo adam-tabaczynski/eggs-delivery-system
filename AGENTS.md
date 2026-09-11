@@ -22,9 +22,21 @@ src/
   queries/           # read use-cases
   repositories/      # Session + model access
   exceptions/        # domain / business-rule errors
-  core/              # config, db, clock
+  core/              # interfaces + integrations (e.g. SQLAlchemy UoW); settings at src/settings.py
   models.py          # SQLAlchemy mapped classes
   schemas.py         # Pydantic request/response DTOs
+```
+
+## Tests
+
+```
+tests/
+  unit/          # command policy with FakeUoW / FakeRepo (no Postgres)
+  integration/   # real UoW, repositories, DB-backed command paths
+  functional/    # HTTP via TestClient
+  conftest.py
+  helpers.py
+  fakes.py       # shared FakeUoW / FakeRepo (Protocol impls; not under src/)
 ```
 
 ## Domain

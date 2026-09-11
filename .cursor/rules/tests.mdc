@@ -1,0 +1,21 @@
+---
+description: Test bucket ownership under tests/
+globs: tests/**/*.py
+alwaysApply: false
+---
+
+# tests/ bucket ownership
+
+## Buckets
+
+- `unit/` — command/query business rules with FakeUoW + FakeRepo; never mock SQLAlchemy `Session` or the DB driver
+- `integration/` — real Postgres + `SqlAlchemyUnitOfWork` / repositories; prove persistence and constraints
+- `functional/` — `TestClient` against the app; status codes and JSON only; no Session in tests
+
+## Rules
+
+- Prefer FakeUoW / FakeRepo over patching `SessionFactory` or mocking SQLAlchemy `Session`
+- Put shared test doubles in `tests/fakes.py` (implement the `UnitOfWork` / repository Protocols explicitly); keep them out of `src/`
+- Split into `tests/fakes/` only when that file grows large; one-off doubles may live next to a single test module
+- Flat modules by concern under each bucket; no per-domain test packages
+- Shared fixtures in root `conftest.py`; tiny pure helpers in `helpers.py`

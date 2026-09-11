@@ -27,6 +27,17 @@ src/
   schemas.py         # Pydantic request/response DTOs
 ```
 
+## Tests
+
+```
+tests/
+  unit/          # command policy with FakeUoW / FakeRepo (no Postgres)
+  integration/   # real UoW, repositories, DB-backed command paths
+  functional/    # HTTP via TestClient
+  conftest.py
+  helpers.py
+```
+
 ## Domain
 - Separate `Customer` and `Provider` tables (no shared User + role)
 - Seed one Provider; customers register

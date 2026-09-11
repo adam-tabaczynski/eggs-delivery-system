@@ -1,14 +1,9 @@
-from uuid import uuid4
-
 import pytest
 from sqlalchemy import select
 
 from src.core.integrations.sqlalchemy import SessionFactory, SqlAlchemyUnitOfWork
 from src.models import Customer
-
-
-def _email() -> str:
-    return f"uow-{uuid4().hex}@example.com"
+from tests.helpers import unique_email
 
 
 def _customer(email: str) -> Customer:
@@ -21,7 +16,7 @@ def _find_email(email: str) -> Customer | None:
 
 
 def test_uow_commit_persists() -> None:
-    email = _email()
+    email = unique_email(prefix="uow")
     uow = SqlAlchemyUnitOfWork()
     with uow:
         assert uow.session is not None
@@ -32,7 +27,7 @@ def test_uow_commit_persists() -> None:
 
 
 def test_uow_rolls_back_uncommitted_work() -> None:
-    email = _email()
+    email = unique_email(prefix="uow")
     uow = SqlAlchemyUnitOfWork()
     with uow:
         assert uow.session is not None
@@ -45,7 +40,7 @@ def test_uow_rolls_back_on_error() -> None:
     class Boom(Exception):
         pass
 
-    email = _email()
+    email = unique_email(prefix="uow")
     uow = SqlAlchemyUnitOfWork()
     with pytest.raises(Boom):
         with uow:

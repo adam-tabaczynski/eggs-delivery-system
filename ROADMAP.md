@@ -41,6 +41,7 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 
 - [ ] Unit of Work pattern
 - [ ] `controllers/`, `commands/`, `repositories/`, `exceptions/` (flat modules by concern)
+- [ ] `tests/`: `unit/` / `integration/` / `functional/` (FakeUoW in unit; agent test guidance)
 - [ ] Customer registration endpoint
 
 

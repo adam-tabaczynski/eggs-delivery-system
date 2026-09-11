@@ -33,8 +33,6 @@ Caller passes `provider_id` / `customer_id` where needed.
 - [x] Generate migration files
 - [x] Idempotent SQL seed for one Provider (`docker/seed.sql`, after migrations; no provider register API)
 
-
-
 ### Application layers
 
 First write path; this is where the multilayer dirs land so Delivery cycles and Orders stay thin.
@@ -44,17 +42,13 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [x] `tests/`: `unit/` / `integration/` / `functional/` (FakeUoW in unit; agent test guidance)
 - [x] Customer registration endpoint
 
-
-
 ### Delivery cycles
 
-- [ ] Granular exceptions (domain errors + DB/infrastructure wrappers)
 - [ ] `DeliveryCycle`: `id`, `provider_id`, `delivery_at`, `cutoff_at`, `max_eggs`, `status` (`open` / `closed`), `created_at`, `updated_at`
 - [ ] Provider: create cycle; list cycles by `provider_id`
 - [ ] Provider: explicit close; also treat as closed when `now >= cutoff_at`
 - [ ] Customer: list cycles (open + past; filtering later)
-
-
+- [ ] Granular exceptions (domain errors + DB/infrastructure wrappers)
 
 ### Orders
 
@@ -65,11 +59,7 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [ ] Provider: list orders for a cycle (open + cancelled)
 - [ ] Provider: committed open eggs vs `max_eggs` for a cycle
 
-
-
 ## Phase 2 — Auth, ops & geospatial
-
-
 
 ### Auth & cycle ops
 
@@ -77,8 +67,6 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [ ] Pydantic `EmailStr` (+ `email-validator`) on auth and identity payloads
 - [ ] `current_provider` / `current_customer` dependencies (stop passing ids for authz)
 - [ ] Provider: update delivery cycle
-
-
 
 ### Geospatial
 
@@ -89,8 +77,6 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [ ] Simple stop ordering (greedy nearest-neighbor)
 - [ ] Keep sync; compute on request
 
-
-
 ## Phase 3 — Email (SES-shaped)
 
 - [ ] `Notifier` abstraction
@@ -98,23 +84,17 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [ ] Order confirmation + cutoff / delivery reminders (sync in-process at first)
 - [ ] SES-shaped adapter for later AWS use
 
-
-
 ## Phase 4 — Background work (SQS-shaped)
 
 - [ ] Local queue (Redis or LocalStack SQS) + worker in Compose
 - [ ] Jobs: cutoff reminders, provider digest, route computation
 - [ ] API enqueues; worker processes
 
-
-
 ## Phase 5 — Async migration
 
 - [ ] Async FastAPI routes + SQLAlchemy (`asyncpg`)
 - [ ] Async worker consumers
 - [ ] Document what changed and why
-
-
 
 ## Phase 6 — AWS deploy
 

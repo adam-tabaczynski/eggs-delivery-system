@@ -7,3 +7,7 @@ class DomainError(Exception):
 
 class ConflictError(DomainError):
     """Raised when a write would violate uniqueness or occupancy."""
+
+
+class NotFoundError(DomainError):
+    """Raised when a referenced entity does not exist."""

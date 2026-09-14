@@ -3,8 +3,10 @@ from types import TracebackType
 from typing import Self
 
 from src.core.interfaces.customer_repository import CustomerRepository
+from src.core.interfaces.cycle_repository import DeliveryCycleRepository
+from src.core.interfaces.provider_repository import ProviderRepository
 from src.core.interfaces.unit_of_work import UnitOfWork
-from src.models import Customer
+from src.models import Customer, DeliveryCycle, DeliveryCycleStatus, Provider
 
 
 class FakeCustomerRepository(CustomerRepository):
@@ -25,9 +27,52 @@ class FakeCustomerRepository(CustomerRepository):
         return customer
 
 
+class FakeProviderRepository(ProviderRepository):
+    def __init__(self) -> None:
+        self._by_id: dict[int, Provider] = {}
+        self._next_id = 1
+
+    def get(self, provider_id: int) -> Provider | None:
+        return self._by_id.get(provider_id)
+
+    def add(self, provider: Provider) -> Provider:
+        now = datetime.now(UTC)
+        provider.id = self._next_id
+        self._next_id += 1
+        provider.created_at = now
+        provider.updated_at = now
+        self._by_id[provider.id] = provider
+        return provider
+
+
+class FakeDeliveryCycleRepository(DeliveryCycleRepository):
+    def __init__(self) -> None:
+        self._by_id: dict[int, DeliveryCycle] = {}
+        self._next_id = 1
+
+    def add(self, cycle: DeliveryCycle) -> DeliveryCycle:
+        now = datetime.now(UTC)
+        cycle.id = self._next_id
+        self._next_id += 1
+        if getattr(cycle, "status", None) is None:
+            cycle.status = DeliveryCycleStatus.OPEN
+        cycle.created_at = now
+        cycle.updated_at = now
+        self._by_id[cycle.id] = cycle
+        return cycle
+
+    def list_by_provider_id(self, provider_id: int) -> list[DeliveryCycle]:
+        cycles = [
+            cycle for cycle in self._by_id.values() if cycle.provider_id == provider_id
+        ]
+        return sorted(cycles, key=lambda cycle: (cycle.delivery_at, cycle.id))
+
+
 class FakeUnitOfWork(UnitOfWork):
     def __init__(self) -> None:
         self.customers = FakeCustomerRepository()
+        self.providers = FakeProviderRepository()
+        self.cycles = FakeDeliveryCycleRepository()
         self.committed = False
 
     def __enter__(self) -> Self:

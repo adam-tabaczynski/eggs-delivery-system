@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from src.core.integrations.sqlalchemy.session import SessionFactory
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.repositories.customers import SqlAlchemyCustomerRepository
+from src.repositories.cycles import SqlAlchemyDeliveryCycleRepository
+from src.repositories.providers import SqlAlchemyProviderRepository
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
@@ -19,6 +21,8 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     def __enter__(self) -> Self:
         self.session = self._session_factory()
         self.customers = SqlAlchemyCustomerRepository(self.session)
+        self.providers = SqlAlchemyProviderRepository(self.session)
+        self.cycles = SqlAlchemyDeliveryCycleRepository(self.session)
         return self
 
     def __exit__(

@@ -24,5 +24,9 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 env = [
-    "DATABASE_URL=postgresql+psycopg://eggs:eggs@localhost:5432/doorstep_eggs",
+    "POSTGRES_USER=eggs",
+    "POSTGRES_PASSWORD=eggs",
+    "POSTGRES_HOST=localhost",
+    "POSTGRES_PORT=5433",
+    "POSTGRES_DB=doorstep_eggs_test",
 ]

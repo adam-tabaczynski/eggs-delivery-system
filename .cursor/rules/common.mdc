@@ -14,8 +14,10 @@ alwaysApply: true
 
 - Load settings via pydantic-settings.
 - Never hardcode environment values in app or test code.
+- Settings builds the SQLAlchemy URL from `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` (no `DATABASE_URL` env).
 - Test env defaults live in `pyproject.toml` `[tool.pytest.ini_options].env` (not conftest, not hardcoded in tests).
 - Do not commit `.env`; keep `.env.example` in sync when keys change.
+- Which file supplies `POSTGRES_*` for the app, Compose, and pytest is in `README.md` — do not restate it here.
 
 ## Scope
 

@@ -17,7 +17,7 @@ Sync FastAPI app runnable locally via Docker.
 - [x] Flat `src/` package with config + sync SQLAlchemy setup
 - [x] `GET /health`
 - [x] `Dockerfile` + `docker-compose.yml` (api + PostGIS)
-- [x] `.env.example` (`DATABASE_URL` required at runtime)
+- [x] `.env.example` (`POSTGRES_*` parts required at runtime)
 - [x] pytest smoke test for `/health`
 
 ## Phase 1 — MVP domain (sync)
@@ -46,7 +46,7 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 
 - [x] `DeliveryCycle`: `id`, `provider_id`, `delivery_at`, `cutoff_at`, `max_eggs`, `status` (`open` / `closed`), `created_at`, `updated_at`
 - [x] Provider: create cycle; list cycles by `provider_id`
-- [ ] Separate DB / schema for testing
+- [x] Separate DB / schema for testing
 - [ ] Granular exceptions
 - [ ] Provider: explicit close; also treat as closed when `now >= cutoff_at`
 - [ ] Customer: list cycles (open + past; filtering later)

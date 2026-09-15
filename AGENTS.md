@@ -39,6 +39,8 @@ tests/
   fakes.py       # shared FakeUoW / FakeRepo (Protocol impls; not under src/)
 ```
 
+pytest-env in `pyproject.toml` points DB-backed tests at `db_test`. How to run them is in [README.md](README.md). Do not seed the test database.
+
 ## Domain
 - Separate `Customer` and `Provider` tables (no shared User + role)
 - Seed one Provider; customers register

@@ -47,7 +47,7 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [x] `DeliveryCycle`: `id`, `provider_id`, `delivery_at`, `cutoff_at`, `max_eggs`, `status` (`open` / `closed`), `created_at`, `updated_at`
 - [x] Provider: create cycle; list cycles by `provider_id`
 - [x] Separate DB / schema for testing
-- [ ] Granular exceptions
+- [x] Granular exceptions
 - [ ] Provider: explicit close; also treat as closed when `now >= cutoff_at`
 - [ ] Customer: list cycles (open + past; filtering later)
 

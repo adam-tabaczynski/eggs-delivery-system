@@ -15,6 +15,9 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
         self.session.refresh(cycle)
         return cycle
 
+    def get(self, cycle_id: int) -> DeliveryCycle | None:
+        return self.session.get(DeliveryCycle, cycle_id)
+
     def list_by_provider_id(self, provider_id: int) -> list[DeliveryCycle]:
         stmt = (
             select(DeliveryCycle)

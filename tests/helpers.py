@@ -9,3 +9,8 @@ def unique_email(*, prefix: str = "test") -> str:
 def future_cycle_window() -> tuple[datetime, datetime]:
     now = datetime.now(UTC)
     return now + timedelta(days=5), now + timedelta(days=7)
+
+
+def past_cycle_window() -> tuple[datetime, datetime]:
+    now = datetime.now(UTC)
+    return now - timedelta(days=2), now - timedelta(days=1)

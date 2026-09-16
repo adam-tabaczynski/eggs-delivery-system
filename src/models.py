@@ -73,3 +73,8 @@ class DeliveryCycle(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+    def effective_status(self, now: datetime) -> DeliveryCycleStatus:
+        if self.status is DeliveryCycleStatus.CLOSED or now >= self.cutoff_at:
+            return DeliveryCycleStatus.CLOSED
+        return DeliveryCycleStatus.OPEN

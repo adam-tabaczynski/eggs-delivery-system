@@ -61,6 +61,9 @@ class FakeDeliveryCycleRepository(DeliveryCycleRepository):
         self._by_id[cycle.id] = cycle
         return cycle
 
+    def get(self, cycle_id: int) -> DeliveryCycle | None:
+        return self._by_id.get(cycle_id)
+
     def list_by_provider_id(self, provider_id: int) -> list[DeliveryCycle]:
         cycles = [
             cycle for cycle in self._by_id.values() if cycle.provider_id == provider_id

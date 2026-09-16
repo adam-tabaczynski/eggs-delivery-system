@@ -1,8 +1,9 @@
 from datetime import datetime
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from src.models import DeliveryCycleStatus
+from src.models import DeliveryCycle, DeliveryCycleStatus
 
 
 class CustomerCreate(BaseModel):
@@ -41,6 +42,12 @@ class DeliveryCycleCreate(BaseModel):
         return self
 
 
+class DeliveryCycleUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal[DeliveryCycleStatus.CLOSED]
+
+
 class DeliveryCycleRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -52,3 +59,9 @@ class DeliveryCycleRead(BaseModel):
     status: DeliveryCycleStatus
     created_at: datetime
     updated_at: datetime
+
+    @classmethod
+    def from_model(cls, model: DeliveryCycle, *, now: datetime) -> Self:
+        return cls.model_validate(model).model_copy(
+            update={"status": model.effective_status(now)}
+        )

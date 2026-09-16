@@ -15,3 +15,17 @@ class ProviderNotFound(NotFoundError):
 
     def __init__(self, message: str = "Provider not found") -> None:
         super().__init__(message)
+
+
+class CycleNotFound(NotFoundError):
+    code = "cycle_not_found"
+
+    def __init__(self, message: str = "Cycle not found") -> None:
+        super().__init__(message)
+
+
+class CycleAlreadyClosed(ConflictError):
+    code = "cycle_already_closed"
+
+    def __init__(self, message: str = "Cycle is already closed") -> None:
+        super().__init__(message)

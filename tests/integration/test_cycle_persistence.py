@@ -1,11 +1,11 @@
 import pytest
 
-from src.commands.cycles import create_delivery_cycle
+from src.commands.cycles import create_delivery_cycle, update_delivery_cycle
+from src.core.exceptions import ConflictError, NotFoundError
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
-from src.core.exceptions import NotFoundError
 from src.models import DeliveryCycleStatus, Provider
 from src.queries.cycles import list_cycles_for_provider
-from tests.helpers import future_cycle_window, unique_email
+from tests.helpers import future_cycle_window, past_cycle_window, unique_email
 
 
 def test_create_cycle_persists(provider_id: int) -> None:
@@ -70,3 +70,82 @@ def test_create_cycle_unknown_provider() -> None:
             max_eggs=48,
             uow=SqlAlchemyUnitOfWork(),
         )
+
+
+def test_update_cycle_persists(provider_id: int) -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    created = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+
+    updated = update_delivery_cycle(
+        provider_id=provider_id,
+        cycle_id=created.id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+    listed = list_cycles_for_provider(
+        provider_id=provider_id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+
+    assert updated.status == DeliveryCycleStatus.CLOSED
+    assert listed[0].status == DeliveryCycleStatus.CLOSED
+
+
+def test_update_cycle_unknown_cycle(provider_id: int) -> None:
+    with pytest.raises(NotFoundError, match="Cycle not found"):
+        update_delivery_cycle(
+            provider_id=provider_id,
+            cycle_id=0,
+            uow=SqlAlchemyUnitOfWork(),
+        )
+
+
+def test_update_cycle_already_closed(provider_id: int) -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    created = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+    update_delivery_cycle(
+        provider_id=provider_id,
+        cycle_id=created.id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+
+    with pytest.raises(ConflictError, match="Cycle is already closed"):
+        update_delivery_cycle(
+            provider_id=provider_id,
+            cycle_id=created.id,
+            uow=SqlAlchemyUnitOfWork(),
+        )
+
+
+def test_list_treats_past_cutoff_as_closed(provider_id: int) -> None:
+    cutoff_at, delivery_at = past_cycle_window()
+    created = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+
+    listed = list_cycles_for_provider(
+        provider_id=provider_id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+
+    assert created.status == DeliveryCycleStatus.CLOSED
+    assert listed[0].status == DeliveryCycleStatus.CLOSED
+    with SqlAlchemyUnitOfWork() as uow:
+        stored = uow.cycles.get(created.id)
+        assert stored is not None
+        assert stored.status == DeliveryCycleStatus.OPEN

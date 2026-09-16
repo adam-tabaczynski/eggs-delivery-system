@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.core.interfaces.unit_of_work import UnitOfWork
-from src.exceptions import ProviderNotFound
+from src.exceptions import CycleAlreadyClosed, CycleNotFound, ProviderNotFound
 from src.models import DeliveryCycle, DeliveryCycleStatus
 from src.schemas import DeliveryCycleRead
 
@@ -14,6 +14,7 @@ def create_delivery_cycle(
     max_eggs: int,
     uow: UnitOfWork,
 ) -> DeliveryCycleRead:
+    now = datetime.now(UTC)
     with uow:
         if uow.providers.get(provider_id) is None:
             raise ProviderNotFound()
@@ -26,4 +27,24 @@ def create_delivery_cycle(
         )
         uow.cycles.add(cycle)
         uow.commit()
-        return DeliveryCycleRead.model_validate(cycle)
+        return DeliveryCycleRead.from_model(cycle, now=now)
+
+
+def update_delivery_cycle(
+    *,
+    provider_id: int,
+    cycle_id: int,
+    uow: UnitOfWork,
+) -> DeliveryCycleRead:
+    now = datetime.now(UTC)
+    with uow:
+        if uow.providers.get(provider_id) is None:
+            raise ProviderNotFound()
+        cycle = uow.cycles.get(cycle_id)
+        if cycle is None or cycle.provider_id != provider_id:
+            raise CycleNotFound()
+        if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
+            raise CycleAlreadyClosed()
+        cycle.status = DeliveryCycleStatus.CLOSED
+        uow.commit()
+        return DeliveryCycleRead.from_model(cycle, now=now)

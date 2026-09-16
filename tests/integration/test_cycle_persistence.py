@@ -2,7 +2,7 @@ import pytest
 
 from src.commands.cycles import create_delivery_cycle
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
-from src.exceptions import NotFoundError
+from src.core.exceptions import NotFoundError
 from src.models import DeliveryCycleStatus, Provider
 from src.queries.cycles import list_cycles_for_provider
 from tests.helpers import future_cycle_window, unique_email

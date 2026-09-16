@@ -1,7 +1,7 @@
 import pytest
 
 from src.commands.cycles import create_delivery_cycle
-from src.exceptions import NotFoundError
+from src.exceptions import ProviderNotFound
 from src.models import DeliveryCycleStatus, Provider
 from src.queries.cycles import list_cycles_for_provider
 from tests.fakes import FakeUnitOfWork
@@ -40,7 +40,7 @@ def test_create_cycle_unknown_provider() -> None:
     uow = FakeUnitOfWork()
     cutoff_at, delivery_at = future_cycle_window()
 
-    with pytest.raises(NotFoundError, match="Provider not found"):
+    with pytest.raises(ProviderNotFound, match="Provider not found"):
         create_delivery_cycle(
             provider_id=99,
             delivery_at=delivery_at,
@@ -82,5 +82,5 @@ def test_list_cycles_for_provider() -> None:
 def test_list_cycles_unknown_provider() -> None:
     uow = FakeUnitOfWork()
 
-    with pytest.raises(NotFoundError, match="Provider not found"):
+    with pytest.raises(ProviderNotFound, match="Provider not found"):
         list_cycles_for_provider(provider_id=99, uow=uow)

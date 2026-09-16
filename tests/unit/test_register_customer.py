@@ -1,7 +1,7 @@
 import pytest
 
 from src.commands.customers import register_customer
-from src.exceptions import ConflictError
+from src.exceptions import EmailAlreadyRegistered
 from tests.fakes import FakeUnitOfWork
 
 
@@ -29,7 +29,7 @@ def test_register_customer_duplicate_email() -> None:
         email="ada@example.com",
         uow=uow,
     )
-    with pytest.raises(ConflictError, match="Email already registered"):
+    with pytest.raises(EmailAlreadyRegistered, match="Email already registered"):
         register_customer(
             first_name="Ada",
             last_name="Lovelace",

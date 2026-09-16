@@ -3,8 +3,9 @@ from sqlalchemy import select
 
 from src.core.integrations.sqlalchemy.session import SessionFactory
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
-from src.models import Customer
-from tests.helpers import unique_email
+from src.core.exceptions import ConflictError, NotFoundError
+from src.models import Customer, DeliveryCycle, DeliveryCycleStatus
+from tests.helpers import future_cycle_window, unique_email
 
 
 def _customer(email: str) -> Customer:
@@ -50,3 +51,31 @@ def test_uow_rolls_back_on_error() -> None:
             raise Boom()
 
     assert _find_email(email) is None
+
+
+def test_uow_maps_unique_violation_to_conflict() -> None:
+    email = unique_email(prefix="uow")
+    with SqlAlchemyUnitOfWork() as uow:
+        uow.customers.add(_customer(email))
+        uow.commit()
+
+    with pytest.raises(ConflictError, match="Unique constraint violated"):
+        with SqlAlchemyUnitOfWork() as uow:
+            uow.customers.add(_customer(email))
+            uow.commit()
+
+
+def test_uow_maps_foreign_key_violation_to_not_found() -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    with pytest.raises(NotFoundError, match="Referenced entity does not exist"):
+        with SqlAlchemyUnitOfWork() as uow:
+            uow.cycles.add(
+                DeliveryCycle(
+                    provider_id=0,
+                    delivery_at=delivery_at,
+                    cutoff_at=cutoff_at,
+                    max_eggs=12,
+                    status=DeliveryCycleStatus.OPEN,
+                )
+            )
+            uow.commit()

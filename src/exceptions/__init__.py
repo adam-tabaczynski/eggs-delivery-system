@@ -1,13 +1,3 @@
-"""Domain / business-rule errors."""
+from src.exceptions.rules import EmailAlreadyRegistered, ProviderNotFound
 
-
-class DomainError(Exception):
-    """Raised when a business rule is violated."""
-
-
-class ConflictError(DomainError):
-    """Raised when a write would violate uniqueness or occupancy."""
-
-
-class NotFoundError(DomainError):
-    """Raised when a referenced entity does not exist."""
+__all__ = ["EmailAlreadyRegistered", "ProviderNotFound"]

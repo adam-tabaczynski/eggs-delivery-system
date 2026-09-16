@@ -33,4 +33,7 @@ def test_register_customer_duplicate_email() -> None:
     assert first.status_code == 201
     second = client.post("/customers", json=_payload(email))
     assert second.status_code == 409
-    assert second.json() == {"detail": "Email already registered"}
+    assert second.json() == {
+        "code": "email_already_registered",
+        "message": "Email already registered",
+    }

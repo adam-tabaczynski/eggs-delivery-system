@@ -49,7 +49,7 @@ First write path; this is where the multilayer dirs land so Delivery cycles and 
 - [x] Separate DB / schema for testing
 - [x] Granular exceptions
 - [x] Provider: explicit close; also treat as closed when `now >= cutoff_at`
-- [ ] Common clock class
+- [x] Common clock class
 - [ ] Customer: list cycles (open + past; filtering later)
 
 ### Orders

@@ -5,6 +5,7 @@ description = "Single-provider egg delivery portal"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.19.1",
     "fastapi>=0.139.2",
     "httpx>=0.28.1",
     "psycopg[binary]>=3.3.4",
@@ -23,5 +24,9 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 env = [
-    "DATABASE_URL=postgresql+psycopg://eggs:eggs@localhost:5432/doorstep_eggs",
+    "POSTGRES_USER=eggs",
+    "POSTGRES_PASSWORD=eggs",
+    "POSTGRES_HOST=localhost",
+    "POSTGRES_PORT=5433",
+    "POSTGRES_DB=doorstep_eggs_test",
 ]

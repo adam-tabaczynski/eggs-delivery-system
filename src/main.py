@@ -1,12 +1,3 @@
-from fastapi import FastAPI
+from src.controllers.integrations.fast_api.app import fastapi_app
 
-from src.config import get_settings
-
-settings = get_settings()
-
-app = FastAPI(title=settings.app_name)
-
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+app = fastapi_app

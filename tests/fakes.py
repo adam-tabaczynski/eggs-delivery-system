@@ -11,8 +11,12 @@ from src.models import Customer, DeliveryCycle, DeliveryCycleStatus, Provider
 
 class FakeCustomerRepository(CustomerRepository):
     def __init__(self) -> None:
+        self._by_id: dict[int, Customer] = {}
         self._by_email: dict[str, Customer] = {}
         self._next_id = 1
+
+    def get(self, customer_id: int) -> Customer | None:
+        return self._by_id.get(customer_id)
 
     def get_by_email(self, email: str) -> Customer | None:
         return self._by_email.get(email)
@@ -23,6 +27,7 @@ class FakeCustomerRepository(CustomerRepository):
         self._next_id += 1
         customer.created_at = now
         customer.updated_at = now
+        self._by_id[customer.id] = customer
         self._by_email[customer.email] = customer
         return customer
 
@@ -63,6 +68,11 @@ class FakeDeliveryCycleRepository(DeliveryCycleRepository):
 
     def get(self, cycle_id: int) -> DeliveryCycle | None:
         return self._by_id.get(cycle_id)
+
+    def list_all(self) -> list[DeliveryCycle]:
+        return sorted(
+            self._by_id.values(), key=lambda cycle: (cycle.delivery_at, cycle.id)
+        )
 
     def list_by_provider_id(self, provider_id: int) -> list[DeliveryCycle]:
         cycles = [

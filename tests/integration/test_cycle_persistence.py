@@ -5,7 +5,7 @@ from src.core.exceptions import ConflictError, NotFoundError
 from src.core.clock import Clock
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 from src.models import DeliveryCycleStatus, Provider
-from src.queries.cycles import list_cycles_for_provider
+from src.queries.cycles import list_cycles_for_customer, list_cycles_for_provider
 from tests.helpers import future_cycle_window, past_cycle_window, unique_email
 
 
@@ -165,3 +165,45 @@ def test_list_treats_past_cutoff_as_closed(provider_id: int) -> None:
         stored = uow.cycles.get(created.id)
         assert stored is not None
         assert stored.status == DeliveryCycleStatus.OPEN
+
+
+def test_list_cycles_for_customer_includes_open_and_past(
+    provider_id: int, customer_id: int
+) -> None:
+    past_cutoff, past_delivery = past_cycle_window()
+    open_cutoff, open_delivery = future_cycle_window()
+    past = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=past_delivery,
+        cutoff_at=past_cutoff,
+        max_eggs=12,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    opened = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=open_delivery,
+        cutoff_at=open_cutoff,
+        max_eggs=24,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+
+    listed = list_cycles_for_customer(
+        customer_id=customer_id,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    by_id = {cycle.id: cycle for cycle in listed}
+
+    assert by_id[past.id].status == DeliveryCycleStatus.CLOSED
+    assert by_id[opened.id].status == DeliveryCycleStatus.OPEN
+
+
+def test_list_cycles_for_customer_unknown_customer() -> None:
+    with pytest.raises(NotFoundError, match="Customer not found"):
+        list_cycles_for_customer(
+            customer_id=0,
+            uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
+        )

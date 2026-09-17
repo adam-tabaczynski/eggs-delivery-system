@@ -17,6 +17,13 @@ class ProviderNotFound(NotFoundError):
         super().__init__(message)
 
 
+class CustomerNotFound(NotFoundError):
+    code = "customer_not_found"
+
+    def __init__(self, message: str = "Customer not found") -> None:
+        super().__init__(message)
+
+
 class CycleNotFound(NotFoundError):
     code = "cycle_not_found"
 

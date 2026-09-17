@@ -9,6 +9,9 @@ class SqlAlchemyCustomerRepository(CustomerRepository):
     def __init__(self, session: Session) -> None:
         self.session = session
 
+    def get(self, customer_id: int) -> Customer | None:
+        return self.session.get(Customer, customer_id)
+
     def get_by_email(self, email: str) -> Customer | None:
         return self.session.scalar(select(Customer).where(Customer.email == email))
 

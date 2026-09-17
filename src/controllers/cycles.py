@@ -4,7 +4,7 @@ from src.commands.cycles import create_delivery_cycle, update_delivery_cycle
 from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.dependencies import get_clock, get_uow
-from src.queries.cycles import list_cycles_for_provider
+from src.queries.cycles import list_cycles_for_customer, list_cycles_for_provider
 from src.schemas import DeliveryCycleCreate, DeliveryCycleRead, DeliveryCycleUpdate
 
 router = APIRouter()
@@ -37,6 +37,15 @@ def list_cycles(
     clock: Clock = Depends(get_clock),
 ) -> list[DeliveryCycleRead]:
     return list_cycles_for_provider(provider_id=provider_id, uow=uow, clock=clock)
+
+
+@router.get("/customers/{customer_id}/cycles")
+def list_customer_cycles(
+    customer_id: int,
+    uow: UnitOfWork = Depends(get_uow),
+    clock: Clock = Depends(get_clock),
+) -> list[DeliveryCycleRead]:
+    return list_cycles_for_customer(customer_id=customer_id, uow=uow, clock=clock)
 
 
 @router.patch("/providers/{provider_id}/cycles/{cycle_id}")

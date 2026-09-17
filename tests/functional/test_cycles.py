@@ -192,6 +192,45 @@ def test_list_and_update_treat_past_cutoff_as_closed(provider_id: int) -> None:
     }
 
 
+def test_list_cycles_for_customer(provider_id: int, customer_id: int) -> None:
+    past_cutoff, past_delivery = past_cycle_window()
+    open_cutoff, open_delivery = future_cycle_window()
+    past = client.post(
+        f"/providers/{provider_id}/cycles",
+        json=_payload(
+            cutoff_at=past_cutoff.isoformat(),
+            delivery_at=past_delivery.isoformat(),
+            max_eggs=12,
+        ),
+    )
+    opened = client.post(
+        f"/providers/{provider_id}/cycles",
+        json=_payload(
+            cutoff_at=open_cutoff.isoformat(),
+            delivery_at=open_delivery.isoformat(),
+            max_eggs=24,
+        ),
+    )
+    assert past.status_code == 201
+    assert opened.status_code == 201
+
+    listed = client.get(f"/customers/{customer_id}/cycles")
+    assert listed.status_code == 200
+    cycles = listed.json()
+    by_id = {cycle["id"]: cycle for cycle in cycles}
+    assert by_id[past.json()["id"]]["status"] == "closed"
+    assert by_id[opened.json()["id"]]["status"] == "open"
+
+
+def test_list_cycles_for_customer_unknown_customer() -> None:
+    response = client.get("/customers/0/cycles")
+    assert response.status_code == 404
+    assert response.json() == {
+        "code": "customer_not_found",
+        "message": "Customer not found",
+    }
+
+
 def test_create_cycle_rejects_cutoff_after_delivery(provider_id: int) -> None:
     clock = Clock()
     now = clock.datetime_now()

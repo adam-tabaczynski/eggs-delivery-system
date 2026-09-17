@@ -1,5 +1,6 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
+from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.exceptions import CycleAlreadyClosed, CycleNotFound, ProviderNotFound
 from src.models import DeliveryCycle, DeliveryCycleStatus
@@ -13,8 +14,9 @@ def create_delivery_cycle(
     cutoff_at: datetime,
     max_eggs: int,
     uow: UnitOfWork,
+    clock: Clock,
 ) -> DeliveryCycleRead:
-    now = datetime.now(UTC)
+    now = clock.datetime_now()
     with uow:
         if uow.providers.get(provider_id) is None:
             raise ProviderNotFound()
@@ -35,8 +37,9 @@ def update_delivery_cycle(
     provider_id: int,
     cycle_id: int,
     uow: UnitOfWork,
+    clock: Clock,
 ) -> DeliveryCycleRead:
-    now = datetime.now(UTC)
+    now = clock.datetime_now()
     with uow:
         if uow.providers.get(provider_id) is None:
             raise ProviderNotFound()

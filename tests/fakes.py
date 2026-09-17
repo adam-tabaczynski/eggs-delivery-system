@@ -1,7 +1,7 @@
-from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
 
+from src.core.clock import Clock
 from src.core.interfaces.customer_repository import CustomerRepository
 from src.core.interfaces.cycle_repository import DeliveryCycleRepository
 from src.core.interfaces.provider_repository import ProviderRepository
@@ -18,7 +18,7 @@ class FakeCustomerRepository(CustomerRepository):
         return self._by_email.get(email)
 
     def add(self, customer: Customer) -> Customer:
-        now = datetime.now(UTC)
+        now = Clock().datetime_now()
         customer.id = self._next_id
         self._next_id += 1
         customer.created_at = now
@@ -36,7 +36,7 @@ class FakeProviderRepository(ProviderRepository):
         return self._by_id.get(provider_id)
 
     def add(self, provider: Provider) -> Provider:
-        now = datetime.now(UTC)
+        now = Clock().datetime_now()
         provider.id = self._next_id
         self._next_id += 1
         provider.created_at = now
@@ -51,7 +51,7 @@ class FakeDeliveryCycleRepository(DeliveryCycleRepository):
         self._next_id = 1
 
     def add(self, cycle: DeliveryCycle) -> DeliveryCycle:
-        now = datetime.now(UTC)
+        now = Clock().datetime_now()
         cycle.id = self._next_id
         self._next_id += 1
         if getattr(cycle, "status", None) is None:

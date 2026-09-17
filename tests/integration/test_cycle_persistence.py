@@ -2,6 +2,7 @@ import pytest
 
 from src.commands.cycles import create_delivery_cycle, update_delivery_cycle
 from src.core.exceptions import ConflictError, NotFoundError
+from src.core.clock import Clock
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 from src.models import DeliveryCycleStatus, Provider
 from src.queries.cycles import list_cycles_for_provider
@@ -16,11 +17,13 @@ def test_create_cycle_persists(provider_id: int) -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     listed = list_cycles_for_provider(
         provider_id=provider_id,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     assert created.status == DeliveryCycleStatus.OPEN
@@ -44,6 +47,7 @@ def test_list_cycles_isolates_providers(provider_id: int) -> None:
         cutoff_at=cutoff_at,
         max_eggs=12,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
     create_delivery_cycle(
         provider_id=other_id,
@@ -51,11 +55,13 @@ def test_list_cycles_isolates_providers(provider_id: int) -> None:
         cutoff_at=cutoff_at,
         max_eggs=24,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     listed = list_cycles_for_provider(
         provider_id=provider_id,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
     assert [cycle.max_eggs for cycle in listed] == [12]
 
@@ -69,6 +75,7 @@ def test_create_cycle_unknown_provider() -> None:
             cutoff_at=cutoff_at,
             max_eggs=48,
             uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
         )
 
 
@@ -80,16 +87,19 @@ def test_update_cycle_persists(provider_id: int) -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     updated = update_delivery_cycle(
         provider_id=provider_id,
         cycle_id=created.id,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
     listed = list_cycles_for_provider(
         provider_id=provider_id,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     assert updated.status == DeliveryCycleStatus.CLOSED
@@ -102,6 +112,7 @@ def test_update_cycle_unknown_cycle(provider_id: int) -> None:
             provider_id=provider_id,
             cycle_id=0,
             uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
         )
 
 
@@ -113,11 +124,13 @@ def test_update_cycle_already_closed(provider_id: int) -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
     update_delivery_cycle(
         provider_id=provider_id,
         cycle_id=created.id,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     with pytest.raises(ConflictError, match="Cycle is already closed"):
@@ -125,6 +138,7 @@ def test_update_cycle_already_closed(provider_id: int) -> None:
             provider_id=provider_id,
             cycle_id=created.id,
             uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
         )
 
 
@@ -136,11 +150,13 @@ def test_list_treats_past_cutoff_as_closed(provider_id: int) -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     listed = list_cycles_for_provider(
         provider_id=provider_id,
         uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
     )
 
     assert created.status == DeliveryCycleStatus.CLOSED

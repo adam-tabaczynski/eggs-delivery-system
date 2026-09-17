@@ -1,6 +1,7 @@
 import pytest
 
 from src.commands.cycles import create_delivery_cycle, update_delivery_cycle
+from src.core.clock import Clock
 from src.exceptions import CycleAlreadyClosed, CycleNotFound, ProviderNotFound
 from src.models import DeliveryCycleStatus, Provider
 from src.queries.cycles import list_cycles_for_provider
@@ -15,6 +16,7 @@ def _add_provider(uow: FakeUnitOfWork) -> Provider:
 
 def test_create_cycle_commits() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     provider = _add_provider(uow)
     cutoff_at, delivery_at = future_cycle_window()
 
@@ -24,6 +26,7 @@ def test_create_cycle_commits() -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=uow,
+        clock=clock,
     )
 
     assert result.provider_id == provider.id
@@ -38,6 +41,7 @@ def test_create_cycle_commits() -> None:
 
 def test_create_cycle_unknown_provider() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     cutoff_at, delivery_at = future_cycle_window()
 
     with pytest.raises(ProviderNotFound, match="Provider not found"):
@@ -47,12 +51,14 @@ def test_create_cycle_unknown_provider() -> None:
             cutoff_at=cutoff_at,
             max_eggs=48,
             uow=uow,
+            clock=clock,
         )
     assert not uow.committed
 
 
 def test_list_cycles_for_provider() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     provider = _add_provider(uow)
     other = _add_provider(uow)
     cutoff_at, delivery_at = future_cycle_window()
@@ -63,6 +69,7 @@ def test_list_cycles_for_provider() -> None:
         cutoff_at=cutoff_at,
         max_eggs=12,
         uow=uow,
+        clock=clock,
     )
     create_delivery_cycle(
         provider_id=other.id,
@@ -70,9 +77,10 @@ def test_list_cycles_for_provider() -> None:
         cutoff_at=cutoff_at,
         max_eggs=24,
         uow=uow,
+        clock=clock,
     )
 
-    result = list_cycles_for_provider(provider_id=provider.id, uow=uow)
+    result = list_cycles_for_provider(provider_id=provider.id, uow=uow, clock=clock)
 
     assert len(result) == 1
     assert result[0].provider_id == provider.id
@@ -83,11 +91,12 @@ def test_list_cycles_unknown_provider() -> None:
     uow = FakeUnitOfWork()
 
     with pytest.raises(ProviderNotFound, match="Provider not found"):
-        list_cycles_for_provider(provider_id=99, uow=uow)
+        list_cycles_for_provider(provider_id=99, uow=uow, clock=Clock())
 
 
 def test_update_cycle_commits() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     provider = _add_provider(uow)
     cutoff_at, delivery_at = future_cycle_window()
     created = create_delivery_cycle(
@@ -96,12 +105,14 @@ def test_update_cycle_commits() -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=uow,
+        clock=clock,
     )
 
     result = update_delivery_cycle(
         provider_id=provider.id,
         cycle_id=created.id,
         uow=uow,
+        clock=clock,
     )
 
     assert result.status == DeliveryCycleStatus.CLOSED
@@ -115,7 +126,7 @@ def test_update_cycle_unknown_provider() -> None:
     uow = FakeUnitOfWork()
 
     with pytest.raises(ProviderNotFound, match="Provider not found"):
-        update_delivery_cycle(provider_id=99, cycle_id=1, uow=uow)
+        update_delivery_cycle(provider_id=99, cycle_id=1, uow=uow, clock=Clock())
     assert not uow.committed
 
 
@@ -124,12 +135,18 @@ def test_update_cycle_unknown_cycle() -> None:
     provider = _add_provider(uow)
 
     with pytest.raises(CycleNotFound, match="Cycle not found"):
-        update_delivery_cycle(provider_id=provider.id, cycle_id=99, uow=uow)
+        update_delivery_cycle(
+            provider_id=provider.id,
+            cycle_id=99,
+            uow=uow,
+            clock=Clock(),
+        )
     assert not uow.committed
 
 
 def test_update_cycle_other_provider() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     owner = _add_provider(uow)
     other = _add_provider(uow)
     cutoff_at, delivery_at = future_cycle_window()
@@ -139,6 +156,7 @@ def test_update_cycle_other_provider() -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=uow,
+        clock=clock,
     )
 
     with pytest.raises(CycleNotFound, match="Cycle not found"):
@@ -146,6 +164,7 @@ def test_update_cycle_other_provider() -> None:
             provider_id=other.id,
             cycle_id=created.id,
             uow=uow,
+            clock=clock,
         )
     assert not uow.committed
     stored = uow.cycles.get(created.id)
@@ -155,6 +174,7 @@ def test_update_cycle_other_provider() -> None:
 
 def test_update_cycle_already_closed() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     provider = _add_provider(uow)
     cutoff_at, delivery_at = future_cycle_window()
     created = create_delivery_cycle(
@@ -163,16 +183,28 @@ def test_update_cycle_already_closed() -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=uow,
+        clock=clock,
     )
-    update_delivery_cycle(provider_id=provider.id, cycle_id=created.id, uow=uow)
+    update_delivery_cycle(
+        provider_id=provider.id,
+        cycle_id=created.id,
+        uow=uow,
+        clock=clock,
+    )
 
     with pytest.raises(CycleAlreadyClosed, match="Cycle is already closed"):
-        update_delivery_cycle(provider_id=provider.id, cycle_id=created.id, uow=uow)
+        update_delivery_cycle(
+            provider_id=provider.id,
+            cycle_id=created.id,
+            uow=uow,
+            clock=clock,
+        )
     assert not uow.committed
 
 
 def test_update_cycle_after_cutoff() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     provider = _add_provider(uow)
     cutoff_at, delivery_at = past_cycle_window()
     created = create_delivery_cycle(
@@ -181,10 +213,16 @@ def test_update_cycle_after_cutoff() -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=uow,
+        clock=clock,
     )
 
     with pytest.raises(CycleAlreadyClosed, match="Cycle is already closed"):
-        update_delivery_cycle(provider_id=provider.id, cycle_id=created.id, uow=uow)
+        update_delivery_cycle(
+            provider_id=provider.id,
+            cycle_id=created.id,
+            uow=uow,
+            clock=clock,
+        )
     assert not uow.committed
     stored = uow.cycles.get(created.id)
     assert stored is not None
@@ -193,6 +231,7 @@ def test_update_cycle_after_cutoff() -> None:
 
 def test_list_treats_past_cutoff_as_closed() -> None:
     uow = FakeUnitOfWork()
+    clock = Clock()
     provider = _add_provider(uow)
     cutoff_at, delivery_at = past_cycle_window()
     create_delivery_cycle(
@@ -201,9 +240,10 @@ def test_list_treats_past_cutoff_as_closed() -> None:
         cutoff_at=cutoff_at,
         max_eggs=48,
         uow=uow,
+        clock=clock,
     )
 
-    result = list_cycles_for_provider(provider_id=provider.id, uow=uow)
+    result = list_cycles_for_provider(provider_id=provider.id, uow=uow, clock=clock)
 
     assert result[0].status == DeliveryCycleStatus.CLOSED
     assert uow.cycles.list_by_provider_id(provider.id)[0].status == DeliveryCycleStatus.OPEN

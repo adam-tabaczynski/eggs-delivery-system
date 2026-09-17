@@ -1,7 +1,6 @@
-from datetime import UTC, datetime, timedelta
-
 from fastapi.testclient import TestClient
 
+from src.core.clock import Clock
 from src.main import app
 from tests.helpers import future_cycle_window, past_cycle_window
 
@@ -194,12 +193,13 @@ def test_list_and_update_treat_past_cutoff_as_closed(provider_id: int) -> None:
 
 
 def test_create_cycle_rejects_cutoff_after_delivery(provider_id: int) -> None:
-    now = datetime.now(UTC)
+    clock = Clock()
+    now = clock.datetime_now()
     response = client.post(
         f"/providers/{provider_id}/cycles",
         json=_payload(
-            cutoff_at=(now + timedelta(days=7)).isoformat(),
-            delivery_at=(now + timedelta(days=5)).isoformat(),
+            cutoff_at=clock.move_datetime_forward(now, days=7).isoformat(),
+            delivery_at=clock.move_datetime_forward(now, days=5).isoformat(),
         ),
     )
     assert response.status_code == 422

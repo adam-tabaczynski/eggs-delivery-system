@@ -17,12 +17,12 @@ Target multilayer under `src/` — by concern, not by domain (dirs appear as Pha
 ```
 src/
   main.py            # app factory / router wiring only
-  controllers/       # thin FastAPI routes
+  controllers/       # thin FastAPI routes; HTTP error envelope under integrations/fast_api/
   commands/          # write use-cases
   queries/           # read use-cases
   repositories/      # Session + model access
-  exceptions/        # domain / business-rule errors
-  core/              # interfaces + integrations (e.g. SQLAlchemy UoW); settings at src/settings.py
+  core/              # interfaces + integrations; exception bases in core/exceptions/; settings at src/settings.py
+  exceptions/        # leaf business-rule errors in exceptions/rules.py
   models.py          # SQLAlchemy mapped classes
   schemas.py         # Pydantic request/response DTOs
 ```
@@ -38,6 +38,8 @@ tests/
   helpers.py
   fakes.py       # shared FakeUoW / FakeRepo (Protocol impls; not under src/)
 ```
+
+pytest-env in `pyproject.toml` points DB-backed tests at `db_test`. How to run them is in [README.md](README.md). Do not seed the test database.
 
 ## Domain
 - Separate `Customer` and `Provider` tables (no shared User + role)

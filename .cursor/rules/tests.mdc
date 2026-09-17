@@ -9,7 +9,7 @@ alwaysApply: false
 ## Buckets
 
 - `unit/` — command/query business rules with FakeUoW + FakeRepo; never mock SQLAlchemy `Session` or the DB driver
-- `integration/` — real Postgres + `SqlAlchemyUnitOfWork` / repositories; prove persistence and constraints
+- `integration/` — real Postgres (`db_test`) + `SqlAlchemyUnitOfWork` / repositories; prove persistence and constraints
 - `functional/` — `TestClient` against the app; status codes and JSON only; no Session in tests
 
 ## Rules

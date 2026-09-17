@@ -10,12 +10,12 @@ All application source lives under `src/`.
 
 ## Roles
 
-- `controllers/` — thin FastAPI routes; call commands/queries only; no Session
+- `controllers/` — thin FastAPI routes; HTTP error envelope in `controllers/integrations/fast_api/`; call commands/queries only; no Session
 - `commands/` — write use-cases; may own business rules
 - `queries/` — read use-cases; may own business rules
 - `repositories/` — Session + model access only (get/save/aggregate); no policy
-- `exceptions/` — domain / business-rule errors
-- `core/` — interfaces + integrations (e.g. SQLAlchemy engine/Base/UoW); settings stay at `src/settings.py`; clock later
+- `exceptions/` — leaf business-rule errors (`exceptions/rules.py`)
+- `core/` — interfaces + integrations (e.g. SQLAlchemy engine/Base/UoW); `Clock` at `core/clock.py`; exception bases and buckets in `core/exceptions/`; settings stay at `src/settings.py`
 - `models.py` / `schemas.py` — mapped classes and HTTP DTOs inside `src/` (split to packages later if needed)
 
 ## Shape

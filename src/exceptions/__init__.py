@@ -1,9 +1,15 @@
-"""Domain / business-rule errors."""
+from src.exceptions.rules import (
+    CycleAlreadyClosed,
+    CycleNotFound,
+    CustomerNotFound,
+    EmailAlreadyRegistered,
+    ProviderNotFound,
+)
 
-
-class DomainError(Exception):
-    """Raised when a business rule is violated."""
-
-
-class ConflictError(DomainError):
-    """Raised when a write would violate uniqueness or occupancy."""
+__all__ = [
+    "CycleAlreadyClosed",
+    "CycleNotFound",
+    "CustomerNotFound",
+    "EmailAlreadyRegistered",
+    "ProviderNotFound",
+]

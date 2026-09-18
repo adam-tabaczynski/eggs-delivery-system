@@ -8,6 +8,8 @@ class OrderRepository(Protocol):
 
     def get(self, order_id: int) -> Order | None: ...
 
+    def list_by_customer_id(self, customer_id: int) -> list[Order]: ...
+
     def update(
         self,
         order: Order,

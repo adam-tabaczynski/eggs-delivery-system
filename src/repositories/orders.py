@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.core.interfaces.order_repository import OrderRepository
@@ -16,6 +17,14 @@ class SqlAlchemyOrderRepository(OrderRepository):
 
     def get(self, order_id: int) -> Order | None:
         return self.session.get(Order, order_id)
+
+    def list_by_customer_id(self, customer_id: int) -> list[Order]:
+        stmt = (
+            select(Order)
+            .where(Order.customer_id == customer_id)
+            .order_by(Order.created_at, Order.id)
+        )
+        return list(self.session.scalars(stmt).all())
 
     def update(
         self,

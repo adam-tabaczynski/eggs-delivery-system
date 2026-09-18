@@ -4,6 +4,7 @@ from src.commands.orders import place_order, update_order
 from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.dependencies import get_clock, get_uow
+from src.queries.orders import list_orders_for_customer
 from src.schemas import OrderCreate, OrderRead, OrderUpdate
 
 router = APIRouter()
@@ -26,6 +27,14 @@ def create_order(
         uow=uow,
         clock=clock,
     )
+
+
+@router.get("/customers/{customer_id}/orders")
+def list_customer_orders(
+    customer_id: int,
+    uow: UnitOfWork = Depends(get_uow),
+) -> list[OrderRead]:
+    return list_orders_for_customer(customer_id=customer_id, uow=uow)
 
 
 @router.patch("/customers/{customer_id}/orders/{order_id}")

@@ -108,6 +108,12 @@ class FakeOrderRepository(OrderRepository):
     def get(self, order_id: int) -> Order | None:
         return self._by_id.get(order_id)
 
+    def list_by_customer_id(self, customer_id: int) -> list[Order]:
+        orders = [
+            order for order in self._by_id.values() if order.customer_id == customer_id
+        ]
+        return sorted(orders, key=lambda order: (order.created_at, order.id))
+
     def update(
         self,
         order: Order,

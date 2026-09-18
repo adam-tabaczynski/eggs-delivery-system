@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from src.core.interfaces.order_repository import OrderRepository
-from src.models import Order
+from src.models import Order, OrderStatus
 
 
 class SqlAlchemyOrderRepository(OrderRepository):
@@ -16,3 +16,16 @@ class SqlAlchemyOrderRepository(OrderRepository):
 
     def get(self, order_id: int) -> Order | None:
         return self.session.get(Order, order_id)
+
+    def update(
+        self,
+        order: Order,
+        *,
+        quantity: int | None = None,
+        status: OrderStatus | None = None,
+    ) -> Order:
+        if quantity is not None:
+            order.quantity = quantity
+        if status is not None:
+            order.status = status
+        return order

@@ -36,3 +36,17 @@ class CycleAlreadyClosed(ConflictError):
 
     def __init__(self, message: str = "Cycle is already closed") -> None:
         super().__init__(message)
+
+
+class OrderNotFound(NotFoundError):
+    code = "order_not_found"
+
+    def __init__(self, message: str = "Order not found") -> None:
+        super().__init__(message)
+
+
+class OrderAlreadyCancelled(ConflictError):
+    code = "order_already_cancelled"
+
+    def __init__(self, message: str = "Order is already cancelled") -> None:
+        super().__init__(message)

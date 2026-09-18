@@ -108,6 +108,20 @@ class FakeOrderRepository(OrderRepository):
     def get(self, order_id: int) -> Order | None:
         return self._by_id.get(order_id)
 
+    def update(
+        self,
+        order: Order,
+        *,
+        quantity: int | None = None,
+        status: OrderStatus | None = None,
+    ) -> Order:
+        if quantity is not None:
+            order.quantity = quantity
+        if status is not None:
+            order.status = status
+        order.updated_at = Clock().datetime_now()
+        return order
+
 
 class FakeUnitOfWork(UnitOfWork):
     def __init__(self) -> None:

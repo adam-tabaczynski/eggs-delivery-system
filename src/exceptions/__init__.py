@@ -3,6 +3,8 @@ from src.exceptions.rules import (
     CycleNotFound,
     CustomerNotFound,
     EmailAlreadyRegistered,
+    OrderAlreadyCancelled,
+    OrderNotFound,
     ProviderNotFound,
 )
 
@@ -11,5 +13,7 @@ __all__ = [
     "CycleNotFound",
     "CustomerNotFound",
     "EmailAlreadyRegistered",
+    "OrderAlreadyCancelled",
+    "OrderNotFound",
     "ProviderNotFound",
 ]

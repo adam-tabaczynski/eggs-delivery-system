@@ -4,9 +4,17 @@ from typing import Self
 from src.core.clock import Clock
 from src.core.interfaces.customer_repository import CustomerRepository
 from src.core.interfaces.cycle_repository import DeliveryCycleRepository
+from src.core.interfaces.order_repository import OrderRepository
 from src.core.interfaces.provider_repository import ProviderRepository
 from src.core.interfaces.unit_of_work import UnitOfWork
-from src.models import Customer, DeliveryCycle, DeliveryCycleStatus, Provider
+from src.models import (
+    Customer,
+    DeliveryCycle,
+    DeliveryCycleStatus,
+    Order,
+    OrderStatus,
+    Provider,
+)
 
 
 class FakeCustomerRepository(CustomerRepository):
@@ -81,11 +89,32 @@ class FakeDeliveryCycleRepository(DeliveryCycleRepository):
         return sorted(cycles, key=lambda cycle: (cycle.delivery_at, cycle.id))
 
 
+class FakeOrderRepository(OrderRepository):
+    def __init__(self) -> None:
+        self._by_id: dict[int, Order] = {}
+        self._next_id = 1
+
+    def add(self, order: Order) -> Order:
+        now = Clock().datetime_now()
+        order.id = self._next_id
+        self._next_id += 1
+        if getattr(order, "status", None) is None:
+            order.status = OrderStatus.OPEN
+        order.created_at = now
+        order.updated_at = now
+        self._by_id[order.id] = order
+        return order
+
+    def get(self, order_id: int) -> Order | None:
+        return self._by_id.get(order_id)
+
+
 class FakeUnitOfWork(UnitOfWork):
     def __init__(self) -> None:
         self.customers = FakeCustomerRepository()
         self.providers = FakeProviderRepository()
         self.cycles = FakeDeliveryCycleRepository()
+        self.orders = FakeOrderRepository()
         self.committed = False
 
     def __enter__(self) -> Self:

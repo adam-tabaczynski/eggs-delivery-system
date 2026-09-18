@@ -3,6 +3,7 @@ from typing import Protocol, Self
 
 from src.core.interfaces.customer_repository import CustomerRepository
 from src.core.interfaces.cycle_repository import DeliveryCycleRepository
+from src.core.interfaces.order_repository import OrderRepository
 from src.core.interfaces.provider_repository import ProviderRepository
 
 
@@ -12,6 +13,7 @@ class UnitOfWork(Protocol):
     customers: CustomerRepository
     providers: ProviderRepository
     cycles: DeliveryCycleRepository
+    orders: OrderRepository
 
     def __enter__(self) -> Self: ...
 

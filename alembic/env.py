@@ -10,7 +10,7 @@ from alembic import context
 
 from src.settings import get_settings
 from src.core.integrations.sqlalchemy import Base
-from src.models import Customer, DeliveryCycle, Provider  # noqa: F401 — register metadata
+from src.models import Customer, DeliveryCycle, Order, Provider  # noqa: F401 — register metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

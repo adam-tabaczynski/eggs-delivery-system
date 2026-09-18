@@ -78,3 +78,35 @@ class DeliveryCycle(Base):
         if self.status is DeliveryCycleStatus.CLOSED or now >= self.cutoff_at:
             return DeliveryCycleStatus.CLOSED
         return DeliveryCycleStatus.OPEN
+
+
+class OrderStatus(StrEnum):
+    OPEN = "open"
+    CANCELLED = "cancelled"
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cycle_id: Mapped[int] = mapped_column(ForeignKey("delivery_cycles.id"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    quantity: Mapped[int]
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(
+            OrderStatus,
+            native_enum=False,
+            length=16,
+            values_callable=lambda members: [member.value for member in members],
+        ),
+        default=OrderStatus.OPEN,
+        server_default=OrderStatus.OPEN.value,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

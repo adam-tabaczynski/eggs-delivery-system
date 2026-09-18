@@ -102,6 +102,135 @@ def test_place_order_closed_cycle(provider_id: int, customer_id: int) -> None:
     }
 
 
+def test_place_order_fills_remaining_capacity(
+    provider_id: int, customer_id: int
+) -> None:
+    cycle_id = _open_cycle(provider_id, max_eggs=12)
+    first = client.post(
+        f"/customers/{customer_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 6},
+    )
+    assert first.status_code == 201
+    other = client.post(
+        "/customers",
+        json={
+            "first_name": "Grace",
+            "last_name": "Hopper",
+            "email": unique_email(prefix="customer"),
+        },
+    )
+    assert other.status_code == 201
+    other_id = other.json()["id"]
+
+    response = client.post(
+        f"/customers/{other_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 6},
+    )
+    assert response.status_code == 201
+    assert response.json()["quantity"] == 6
+
+
+def test_place_order_rejects_over_capacity(
+    provider_id: int, customer_id: int
+) -> None:
+    cycle_id = _open_cycle(provider_id, max_eggs=12)
+    first = client.post(
+        f"/customers/{customer_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 8},
+    )
+    assert first.status_code == 201
+    other = client.post(
+        "/customers",
+        json={
+            "first_name": "Grace",
+            "last_name": "Hopper",
+            "email": unique_email(prefix="customer"),
+        },
+    )
+    assert other.status_code == 201
+    other_id = other.json()["id"]
+
+    response = client.post(
+        f"/customers/{other_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 6},
+    )
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "cycle_capacity_exceeded",
+        "message": "Cycle egg capacity exceeded",
+    }
+
+
+def test_place_order_after_cancelled_can_use_capacity(
+    provider_id: int, customer_id: int
+) -> None:
+    cycle_id = _open_cycle(provider_id, max_eggs=6)
+    placed = client.post(
+        f"/customers/{customer_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 6},
+    )
+    assert placed.status_code == 201
+    cancelled = client.patch(
+        f"/customers/{customer_id}/orders/{placed.json()['id']}",
+        json={"status": "cancelled"},
+    )
+    assert cancelled.status_code == 200
+    other = client.post(
+        "/customers",
+        json={
+            "first_name": "Grace",
+            "last_name": "Hopper",
+            "email": unique_email(prefix="customer"),
+        },
+    )
+    assert other.status_code == 201
+    other_id = other.json()["id"]
+
+    response = client.post(
+        f"/customers/{other_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 6},
+    )
+    assert response.status_code == 201
+    assert response.json()["quantity"] == 6
+
+
+def test_update_order_rejects_quantity_over_capacity(
+    provider_id: int, customer_id: int
+) -> None:
+    cycle_id = _open_cycle(provider_id, max_eggs=12)
+    first = client.post(
+        f"/customers/{customer_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 8},
+    )
+    assert first.status_code == 201
+    other = client.post(
+        "/customers",
+        json={
+            "first_name": "Grace",
+            "last_name": "Hopper",
+            "email": unique_email(prefix="customer"),
+        },
+    )
+    assert other.status_code == 201
+    other_id = other.json()["id"]
+    placed = client.post(
+        f"/customers/{other_id}/orders",
+        json={"cycle_id": cycle_id, "quantity": 2},
+    )
+    assert placed.status_code == 201
+    order_id = placed.json()["id"]
+
+    response = client.patch(
+        f"/customers/{other_id}/orders/{order_id}",
+        json={"quantity": 6},
+    )
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "cycle_capacity_exceeded",
+        "message": "Cycle egg capacity exceeded",
+    }
+
+
 def test_place_order_after_cutoff(provider_id: int, customer_id: int) -> None:
     cutoff_at, delivery_at = past_cycle_window()
     cycle_id = _open_cycle(

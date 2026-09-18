@@ -358,6 +358,80 @@ def test_list_orders_for_customer_unknown_customer() -> None:
         )
 
 
+def test_place_order_over_capacity_does_not_persist(
+    provider_id: int, customer_id: int
+) -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    cycle = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    other_uow = SqlAlchemyUnitOfWork()
+    with other_uow:
+        other = Customer(
+            first_name="Grace",
+            last_name="Hopper",
+            email=unique_email(prefix="customer"),
+        )
+        other_uow.customers.add(other)
+        other_uow.commit()
+        other_id = other.id
+    place_order(
+        customer_id=customer_id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+
+    with pytest.raises(ConflictError, match="Cycle egg capacity exceeded"):
+        place_order(
+            customer_id=other_id,
+            cycle_id=cycle.id,
+            quantity=1,
+            uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
+        )
+
+    with SqlAlchemyUnitOfWork() as uow:
+        assert uow.orders.sum_open_quantity(cycle.id) == 6
+
+
+def test_sum_open_quantity_excludes_cancelled(
+    provider_id: int, customer_id: int
+) -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    cycle = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    placed = place_order(
+        customer_id=customer_id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    update_order(
+        customer_id=customer_id,
+        order_id=placed.id,
+        status=OrderStatus.CANCELLED,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+
+    with SqlAlchemyUnitOfWork() as uow:
+        assert uow.orders.sum_open_quantity(cycle.id) == 0
+
+
 def test_place_order_after_cutoff(provider_id: int, customer_id: int) -> None:
     cutoff_at, delivery_at = past_cycle_window()
     cycle = create_delivery_cycle(

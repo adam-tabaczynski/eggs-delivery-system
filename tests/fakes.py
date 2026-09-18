@@ -114,6 +114,13 @@ class FakeOrderRepository(OrderRepository):
         ]
         return sorted(orders, key=lambda order: (order.created_at, order.id))
 
+    def sum_open_quantity(self, cycle_id: int) -> int:
+        return sum(
+            order.quantity
+            for order in self._by_id.values()
+            if order.cycle_id == cycle_id and order.status is OrderStatus.OPEN
+        )
+
     def update(
         self,
         order: Order,

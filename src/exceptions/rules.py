@@ -50,3 +50,10 @@ class OrderAlreadyCancelled(ConflictError):
 
     def __init__(self, message: str = "Order is already cancelled") -> None:
         super().__init__(message)
+
+
+class CycleCapacityExceeded(ConflictError):
+    code = "cycle_capacity_exceeded"
+
+    def __init__(self, message: str = "Cycle egg capacity exceeded") -> None:
+        super().__init__(message)

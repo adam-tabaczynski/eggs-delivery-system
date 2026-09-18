@@ -5,8 +5,9 @@ from src.commands.orders import place_order, update_order
 from src.core.clock import Clock
 from src.core.exceptions import ConflictError, NotFoundError
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
-from src.models import Order, OrderStatus
-from tests.helpers import future_cycle_window, past_cycle_window
+from src.models import Customer, Order, OrderStatus
+from src.queries.orders import list_orders_for_customer
+from tests.helpers import future_cycle_window, past_cycle_window, unique_email
 
 
 def test_order_persists(provider_id: int, customer_id: int) -> None:
@@ -213,6 +214,147 @@ def test_place_order_closed_cycle(provider_id: int, customer_id: int) -> None:
             quantity=6,
             uow=SqlAlchemyUnitOfWork(),
             clock=Clock(),
+        )
+
+
+def test_list_orders_for_customer_includes_open_and_cancelled(
+    provider_id: int, customer_id: int
+) -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    first_cycle = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    second_cycle = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    cancelled = place_order(
+        customer_id=customer_id,
+        cycle_id=first_cycle.id,
+        quantity=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    update_order(
+        customer_id=customer_id,
+        order_id=cancelled.id,
+        status=OrderStatus.CANCELLED,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    opened = place_order(
+        customer_id=customer_id,
+        cycle_id=second_cycle.id,
+        quantity=12,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+
+    listed = list_orders_for_customer(
+        customer_id=customer_id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+    by_id = {order.id: order for order in listed}
+
+    assert by_id[cancelled.id].status == OrderStatus.CANCELLED
+    assert by_id[cancelled.id].quantity == 6
+    assert by_id[opened.id].status == OrderStatus.OPEN
+    assert by_id[opened.id].quantity == 12
+
+
+def test_list_orders_for_customer_isolates_customers(
+    provider_id: int, customer_id: int
+) -> None:
+    other_uow = SqlAlchemyUnitOfWork()
+    with other_uow:
+        other = Customer(
+            first_name="Grace",
+            last_name="Hopper",
+            email=unique_email(prefix="customer"),
+        )
+        other_uow.customers.add(other)
+        other_uow.commit()
+        other_id = other.id
+
+    cutoff_at, delivery_at = future_cycle_window()
+    cycle = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    place_order(
+        customer_id=customer_id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    place_order(
+        customer_id=other_id,
+        cycle_id=cycle.id,
+        quantity=12,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+
+    listed = list_orders_for_customer(
+        customer_id=customer_id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+    assert [order.quantity for order in listed] == [6]
+
+
+def test_list_orders_for_customer_includes_orders_after_cycle_closed(
+    provider_id: int, customer_id: int
+) -> None:
+    cutoff_at, delivery_at = future_cycle_window()
+    cycle = create_delivery_cycle(
+        provider_id=provider_id,
+        delivery_at=delivery_at,
+        cutoff_at=cutoff_at,
+        max_eggs=48,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    placed = place_order(
+        customer_id=customer_id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+    update_delivery_cycle(
+        provider_id=provider_id,
+        cycle_id=cycle.id,
+        uow=SqlAlchemyUnitOfWork(),
+        clock=Clock(),
+    )
+
+    listed = list_orders_for_customer(
+        customer_id=customer_id,
+        uow=SqlAlchemyUnitOfWork(),
+    )
+    assert [order.id for order in listed] == [placed.id]
+    assert listed[0].status == OrderStatus.OPEN
+
+
+def test_list_orders_for_customer_unknown_customer() -> None:
+    with pytest.raises(NotFoundError, match="Customer not found"):
+        list_orders_for_customer(
+            customer_id=0,
+            uow=SqlAlchemyUnitOfWork(),
         )
 
 

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.core.interfaces.order_repository import OrderRepository
@@ -25,6 +25,13 @@ class SqlAlchemyOrderRepository(OrderRepository):
             .order_by(Order.created_at, Order.id)
         )
         return list(self.session.scalars(stmt).all())
+
+    def sum_open_quantity(self, cycle_id: int) -> int:
+        stmt = select(func.coalesce(func.sum(Order.quantity), 0)).where(
+            Order.cycle_id == cycle_id,
+            Order.status == OrderStatus.OPEN,
+        )
+        return int(self.session.scalar(stmt))
 
     def update(
         self,

@@ -6,6 +6,7 @@ from src.commands.orders import place_order, update_order
 from src.core.clock import Clock
 from src.exceptions import (
     CycleAlreadyClosed,
+    CycleCapacityExceeded,
     CycleNotFound,
     CustomerNotFound,
     OrderAlreadyCancelled,
@@ -31,13 +32,15 @@ def _add_customer(uow: FakeUnitOfWork) -> CustomerRead:
     )
 
 
-def _add_open_cycle(uow: FakeUnitOfWork, provider_id: int) -> DeliveryCycleRead:
+def _add_open_cycle(
+    uow: FakeUnitOfWork, provider_id: int, *, max_eggs: int = 48
+) -> DeliveryCycleRead:
     cutoff_at, delivery_at = future_cycle_window()
     return create_delivery_cycle(
         provider_id=provider_id,
         delivery_at=delivery_at,
         cutoff_at=cutoff_at,
-        max_eggs=48,
+        max_eggs=max_eggs,
         uow=uow,
         clock=Clock(),
     )
@@ -366,3 +369,176 @@ def test_update_order_after_cutoff() -> None:
     stored = uow.orders.get(placed.id)
     assert stored is not None
     assert stored.status == OrderStatus.OPEN
+
+
+def test_place_order_fills_remaining_capacity() -> None:
+    uow = FakeUnitOfWork()
+    provider = _add_provider(uow)
+    first = _add_customer(uow)
+    second = _add_customer(uow)
+    cycle = _add_open_cycle(uow, provider.id, max_eggs=12)
+    place_order(
+        customer_id=first.id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    result = place_order(
+        customer_id=second.id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    assert result.quantity == 6
+    assert uow.committed
+    assert uow.orders.sum_open_quantity(cycle.id) == 12
+
+
+def test_place_order_rejects_over_capacity() -> None:
+    uow = FakeUnitOfWork()
+    provider = _add_provider(uow)
+    first = _add_customer(uow)
+    second = _add_customer(uow)
+    cycle = _add_open_cycle(uow, provider.id, max_eggs=12)
+    place_order(
+        customer_id=first.id,
+        cycle_id=cycle.id,
+        quantity=8,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    with pytest.raises(CycleCapacityExceeded, match="Cycle egg capacity exceeded"):
+        place_order(
+            customer_id=second.id,
+            cycle_id=cycle.id,
+            quantity=6,
+            uow=uow,
+            clock=Clock(),
+        )
+    assert not uow.committed
+    assert uow.orders.sum_open_quantity(cycle.id) == 8
+
+
+def test_place_order_ignores_cancelled_quantity() -> None:
+    uow = FakeUnitOfWork()
+    provider = _add_provider(uow)
+    first = _add_customer(uow)
+    second = _add_customer(uow)
+    cycle = _add_open_cycle(uow, provider.id, max_eggs=6)
+    placed = place_order(
+        customer_id=first.id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+    update_order(
+        customer_id=first.id,
+        order_id=placed.id,
+        status=OrderStatus.CANCELLED,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    result = place_order(
+        customer_id=second.id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    assert result.quantity == 6
+    assert uow.committed
+
+
+def test_place_order_capacity_is_per_cycle() -> None:
+    uow = FakeUnitOfWork()
+    provider = _add_provider(uow)
+    first = _add_customer(uow)
+    second = _add_customer(uow)
+    first_cycle = _add_open_cycle(uow, provider.id, max_eggs=6)
+    second_cycle = _add_open_cycle(uow, provider.id, max_eggs=6)
+    place_order(
+        customer_id=first.id,
+        cycle_id=first_cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    result = place_order(
+        customer_id=second.id,
+        cycle_id=second_cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    assert result.cycle_id == second_cycle.id
+    assert uow.committed
+
+
+def test_update_order_rejects_quantity_over_capacity() -> None:
+    uow = FakeUnitOfWork()
+    provider = _add_provider(uow)
+    first = _add_customer(uow)
+    second = _add_customer(uow)
+    cycle = _add_open_cycle(uow, provider.id, max_eggs=12)
+    place_order(
+        customer_id=first.id,
+        cycle_id=cycle.id,
+        quantity=8,
+        uow=uow,
+        clock=Clock(),
+    )
+    placed = place_order(
+        customer_id=second.id,
+        cycle_id=cycle.id,
+        quantity=2,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    with pytest.raises(CycleCapacityExceeded, match="Cycle egg capacity exceeded"):
+        update_order(
+            customer_id=second.id,
+            order_id=placed.id,
+            quantity=6,
+            uow=uow,
+            clock=Clock(),
+        )
+    assert not uow.committed
+    stored = uow.orders.get(placed.id)
+    assert stored is not None
+    assert stored.quantity == 2
+
+
+def test_update_order_can_decrease_when_at_capacity() -> None:
+    uow = FakeUnitOfWork()
+    provider = _add_provider(uow)
+    customer = _add_customer(uow)
+    cycle = _add_open_cycle(uow, provider.id, max_eggs=6)
+    placed = place_order(
+        customer_id=customer.id,
+        cycle_id=cycle.id,
+        quantity=6,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    result = update_order(
+        customer_id=customer.id,
+        order_id=placed.id,
+        quantity=4,
+        uow=uow,
+        clock=Clock(),
+    )
+
+    assert result.quantity == 4
+    assert uow.committed

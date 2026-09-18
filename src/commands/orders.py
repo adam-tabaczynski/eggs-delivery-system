@@ -2,13 +2,24 @@ from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.exceptions import (
     CycleAlreadyClosed,
+    CycleCapacityExceeded,
     CycleNotFound,
     CustomerNotFound,
     OrderAlreadyCancelled,
     OrderNotFound,
 )
-from src.models import DeliveryCycleStatus, Order, OrderStatus
+from src.models import DeliveryCycle, DeliveryCycleStatus, Order, OrderStatus
 from src.schemas import OrderRead
+
+
+def _ensure_cycle_capacity(
+    *,
+    cycle: DeliveryCycle,
+    committed: int,
+    additional: int,
+) -> None:
+    if committed + additional > cycle.max_eggs:
+        raise CycleCapacityExceeded()
 
 
 def place_order(
@@ -28,6 +39,11 @@ def place_order(
             raise CycleNotFound()
         if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
             raise CycleAlreadyClosed()
+        _ensure_cycle_capacity(
+            cycle=cycle,
+            committed=uow.orders.sum_open_quantity(cycle_id),
+            additional=quantity,
+        )
         order = Order(
             cycle_id=cycle_id,
             customer_id=customer_id,
@@ -62,6 +78,12 @@ def update_order(
             raise CycleAlreadyClosed()
         if order.status is OrderStatus.CANCELLED:
             raise OrderAlreadyCancelled()
+        if quantity is not None:
+            _ensure_cycle_capacity(
+                cycle=cycle,
+                committed=uow.orders.sum_open_quantity(order.cycle_id) - order.quantity,
+                additional=quantity,
+            )
         uow.orders.update(order, quantity=quantity, status=status)
         uow.commit()
         return OrderRead.model_validate(order)

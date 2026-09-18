@@ -60,7 +60,8 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 ## Orders
 
 - [x] `Order`: `id`, `cycle_id`, `customer_id`, `quantity` (≥ 1), `status` (`open` / `cancelled`), `created_at`, `updated_at`
-- [ ] Place / update quantity / soft-cancel only before cutoff while cycle open
+- [x] Place / update quantity / soft-cancel only before cutoff while cycle open
+- [ ] Customer: list own orders (open + cancelled)
 - [ ] FCFS capacity: sum of open quantities ≤ `max_eggs`
 - [ ] One open order per customer per cycle; POST when one exists → 409 (use PATCH)
 - [ ] Provider: list orders for a cycle (open + cancelled)

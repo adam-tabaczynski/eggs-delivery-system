@@ -94,7 +94,8 @@ class TestPlaceOrder:
     def test_fills_remaining_capacity(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id, max_eggs=12)
-        make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=6)
+        other_customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=other_customer.id, quantity=6)
         customer = make_customer()
 
         result = place_order(
@@ -110,7 +111,8 @@ class TestPlaceOrder:
     def test_over_capacity(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id, max_eggs=12)
-        make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=8)
+        other_customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=other_customer.id, quantity=8)
         customer = make_customer()
 
         with pytest.raises(CycleCapacityExceeded):
@@ -125,9 +127,10 @@ class TestPlaceOrder:
     def test_ignores_cancelled_quantity(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id, max_eggs=6)
+        other_customer = make_customer()
         make_order(
             cycle_id=cycle.id,
-            customer_id=make_customer().id,
+            customer_id=other_customer.id,
             quantity=6,
             status=OrderStatus.CANCELLED,
         )

@@ -127,7 +127,8 @@ def test_update_cycle() -> None:
 
 
 def test_update_cycle_unknown_provider() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
 
     response = client.patch(
         f"/providers/0/cycles/{cycle.id}",
@@ -202,7 +203,8 @@ def test_update_cycle_rejects_other_fields() -> None:
 
 
 def test_list_cycles_for_customer() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
 
     response = client.get(f"/customers/{customer.id}/cycles")

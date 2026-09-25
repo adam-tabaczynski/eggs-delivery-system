@@ -17,6 +17,7 @@ alwaysApply: false
 
 - Build rows with `tests/generators.py` (`make_*`); never call commands for setup, never add ad-hoc `_add_*` helpers
 - Generators take foreign keys as required args; create parents explicitly and pass their ids
+- Assign each generated parent to its own variable (`customer`, `other_customer`); do not nest calls like `customer_id=make_customer().id`
 - Generator defaults: constants in the signature; `X | None = None` only for per-call values (uuid email, times relative to now)
 - Each test method builds its own rows; never share state through `self` or class-scoped fixtures
 - Time: real `Clock()` + `move_datetime_forward` / `backward`

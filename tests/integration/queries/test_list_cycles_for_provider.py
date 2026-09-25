@@ -32,7 +32,8 @@ class TestListCyclesForProvider:
     def test_isolates_providers(self) -> None:
         provider = make_provider()
         own = make_cycle(provider_id=provider.id)
-        make_cycle(provider_id=make_provider().id)
+        other_provider = make_provider()
+        make_cycle(provider_id=other_provider.id)
 
         result = list_cycles_for_provider(
             provider_id=provider.id, uow=SqlAlchemyUnitOfWork(), clock=Clock()

@@ -74,7 +74,8 @@ class TestUpdateOrder:
     def test_unknown_customer(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
-        order = make_order(cycle_id=cycle.id, customer_id=make_customer().id)
+        customer = make_customer()
+        order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
         with pytest.raises(CustomerNotFound):
             update_order(
@@ -100,12 +101,13 @@ class TestUpdateOrder:
     def test_other_customers_order(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
-        order = make_order(cycle_id=cycle.id, customer_id=make_customer().id)
-        other = make_customer()
+        customer = make_customer()
+        order = make_order(cycle_id=cycle.id, customer_id=customer.id)
+        other_customer = make_customer()
 
         with pytest.raises(OrderNotFound):
             update_order(
-                customer_id=other.id,
+                customer_id=other_customer.id,
                 order_id=order.id,
                 quantity=12,
                 uow=SqlAlchemyUnitOfWork(),
@@ -150,7 +152,8 @@ class TestUpdateOrder:
     def test_over_capacity(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id, max_eggs=12)
-        make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=8)
+        other_customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=other_customer.id, quantity=8)
         customer = make_customer()
         order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=2)
 

@@ -51,13 +51,13 @@ class TestUpdateDeliveryCycle:
             )
 
     def test_other_providers_cycle(self) -> None:
-        owner = make_provider()
-        cycle = make_cycle(provider_id=owner.id)
-        other = make_provider()
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        other_provider = make_provider()
 
         with pytest.raises(CycleNotFound):
             update_delivery_cycle(
-                provider_id=other.id,
+                provider_id=other_provider.id,
                 cycle_id=cycle.id,
                 uow=SqlAlchemyUnitOfWork(),
                 clock=Clock(),

@@ -10,14 +10,12 @@ from tests.generators import make_customer, make_cycle, make_order, make_provide
 class TestListOrdersForCustomer:
     def test_lists_open_and_cancelled_orders(self) -> None:
         provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        other_cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
-        opened = make_order(
-            cycle_id=make_cycle(provider_id=provider.id).id,
-            customer_id=customer.id,
-            quantity=12,
-        )
+        opened = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=12)
         cancelled = make_order(
-            cycle_id=make_cycle(provider_id=provider.id).id,
+            cycle_id=other_cycle.id,
             customer_id=customer.id,
             quantity=6,
             status=OrderStatus.CANCELLED,
@@ -39,7 +37,8 @@ class TestListOrdersForCustomer:
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
         own = make_order(cycle_id=cycle.id, customer_id=customer.id)
-        make_order(cycle_id=cycle.id, customer_id=make_customer().id)
+        other_customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=other_customer.id)
 
         result = list_orders_for_customer(
             customer_id=customer.id, uow=SqlAlchemyUnitOfWork()

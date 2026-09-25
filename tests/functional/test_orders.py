@@ -8,7 +8,8 @@ client = TestClient(app)
 
 
 def test_place_order() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
 
     response = client.post(
@@ -27,7 +28,8 @@ def test_place_order() -> None:
 
 
 def test_place_order_unknown_customer() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
 
     response = client.post(
         "/customers/0/orders",
@@ -55,7 +57,8 @@ def test_place_order_unknown_cycle() -> None:
 
 
 def test_place_order_rejects_non_positive_quantity() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
 
     response = client.post(
@@ -71,9 +74,8 @@ def test_place_order_rejects_non_positive_quantity() -> None:
 
 
 def test_place_order_closed_cycle() -> None:
-    cycle = make_cycle(
-        provider_id=make_provider().id, status=DeliveryCycleStatus.CLOSED
-    )
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id, status=DeliveryCycleStatus.CLOSED)
     customer = make_customer()
 
     response = client.post(
@@ -88,8 +90,10 @@ def test_place_order_closed_cycle() -> None:
 
 
 def test_place_order_rejects_over_capacity() -> None:
-    cycle = make_cycle(provider_id=make_provider().id, max_eggs=12)
-    make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=8)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id, max_eggs=12)
+    other_customer = make_customer()
+    make_order(cycle_id=cycle.id, customer_id=other_customer.id, quantity=8)
     customer = make_customer()
 
     response = client.post(
@@ -104,7 +108,8 @@ def test_place_order_rejects_over_capacity() -> None:
 
 
 def test_update_order_quantity() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=6)
 
@@ -120,7 +125,8 @@ def test_update_order_quantity() -> None:
 
 
 def test_update_order_soft_cancel() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=6)
 
@@ -136,7 +142,8 @@ def test_update_order_soft_cancel() -> None:
 
 
 def test_update_order_already_cancelled() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     order = make_order(
         cycle_id=cycle.id, customer_id=customer.id, status=OrderStatus.CANCELLED
@@ -154,8 +161,10 @@ def test_update_order_already_cancelled() -> None:
 
 
 def test_update_order_unknown_customer() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
-    order = make_order(cycle_id=cycle.id, customer_id=make_customer().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
     response = client.patch(
         f"/customers/0/orders/{order.id}",
@@ -183,9 +192,8 @@ def test_update_order_unknown_order() -> None:
 
 
 def test_update_order_closed_cycle() -> None:
-    cycle = make_cycle(
-        provider_id=make_provider().id, status=DeliveryCycleStatus.CLOSED
-    )
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id, status=DeliveryCycleStatus.CLOSED)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
@@ -201,8 +209,10 @@ def test_update_order_closed_cycle() -> None:
 
 
 def test_update_order_rejects_quantity_over_capacity() -> None:
-    cycle = make_cycle(provider_id=make_provider().id, max_eggs=12)
-    make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=8)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id, max_eggs=12)
+    other_customer = make_customer()
+    make_order(cycle_id=cycle.id, customer_id=other_customer.id, quantity=8)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=2)
 
@@ -218,7 +228,8 @@ def test_update_order_rejects_quantity_over_capacity() -> None:
 
 
 def test_update_order_rejects_open_status() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
@@ -235,7 +246,8 @@ def test_update_order_rejects_open_status() -> None:
 
 
 def test_update_order_rejects_empty_body() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
@@ -252,7 +264,8 @@ def test_update_order_rejects_empty_body() -> None:
 
 
 def test_update_order_rejects_both_fields() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
@@ -269,7 +282,8 @@ def test_update_order_rejects_both_fields() -> None:
 
 
 def test_list_orders() -> None:
-    cycle = make_cycle(provider_id=make_provider().id)
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
     customer = make_customer()
     opened = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=12)
     cancelled = make_order(

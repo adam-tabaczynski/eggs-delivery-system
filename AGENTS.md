@@ -31,13 +31,16 @@ src/
 
 ```
 tests/
-  unit/            # pure functions + model methods (no Postgres)
+  unit/            # pure functions, model methods, custom schema validators (no Postgres)
   integration/
     commands/      # one class per command; business rules
     queries/       # one class per query
     repositories/  # constraints + aggregates
     test_uow.py    # commit / rollback / error mapping
   functional/      # HTTP via TestClient
+    customers/     # one class per endpoint
+    cycles/
+    orders/
   conftest.py      # truncate_tables()
   generators.py    # make_* persisted model generators
   helpers.py       # small pure helpers (e.g. unique_email)

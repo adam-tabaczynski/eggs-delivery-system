@@ -8,10 +8,14 @@ alwaysApply: false
 
 ## Buckets
 
-- `unit/` — pure functions and model methods; no DB, no fakes, no mocks of UoW / Session
+- `unit/` — pure functions, model methods, and custom schema validators (`field_validator` / `model_validator` in `schemas.py`); no DB, no fakes, no mocks of UoW / Session; do not test declarative Pydantic constraints (`Field(ge=...)`, `min_length`, `Literal`, `extra="forbid"`)
 - `integration/commands/`, `integration/queries/` — one module + one class per command/query (`class TestPlaceOrder:`); business rules are tested here only
 - `integration/repositories/`, `integration/test_uow.py` — persistence: constraints, aggregates, commit/rollback
-- `functional/` — `TestClient`; per endpoint: happy path, one test per error `code`, Pydantic 422s; JSON only, no Session
+- `functional/` — `TestClient`; one directory per resource (`customers/`, `cycles/`, `orders/`, grouped like `controllers/`), one module + one class per endpoint; JSON only, no Session
+  - Happy path: one per argument mapping (e.g. update order: quantity, soft cancel)
+  - One domain error: prefer the 404 for the path resource; otherwise the endpoint's own error (e.g. duplicate email 409)
+  - One 422 if the endpoint takes a body
+  - Other rule errors belong in `integration/`, not here
 
 ## Setup
 

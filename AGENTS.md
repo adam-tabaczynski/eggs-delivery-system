@@ -40,6 +40,7 @@ tests/
   functional/      # HTTP via TestClient
   conftest.py      # truncate_tables()
   generators.py    # make_* persisted model generators
+  helpers.py       # small pure helpers (e.g. unique_email)
 ```
 
 Conventions live in [.cursor/rules/tests.mdc](.cursor/rules/tests.mdc).

@@ -1,7 +1,6 @@
 """Persisted model generators for DB-backed tests."""
 
 from datetime import datetime
-from uuid import uuid4
 
 from src.core.clock import Clock
 from src.core.integrations.sqlalchemy.base import Base
@@ -14,10 +13,7 @@ from src.models import (
     OrderStatus,
     Provider,
 )
-
-
-def _unique_email(prefix: str) -> str:
-    return f"{prefix}-{uuid4().hex}@example.com"
+from tests.helpers import unique_email
 
 
 def _persist[T: Base](entity: T, uow: SqlAlchemyUnitOfWork) -> T:
@@ -33,7 +29,7 @@ def make_provider(*, name: str = "Test Farm", email: str | None = None) -> Provi
         provider = uow.providers.add(
             Provider(
                 name=name,
-                email=email if email is not None else _unique_email("provider"),
+                email=email if email is not None else unique_email("provider"),
             )
         )
         return _persist(provider, uow)
@@ -50,7 +46,7 @@ def make_customer(
             Customer(
                 first_name=first_name,
                 last_name=last_name,
-                email=email if email is not None else _unique_email("customer"),
+                email=email if email is not None else unique_email("customer"),
             )
         )
         return _persist(customer, uow)

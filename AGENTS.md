@@ -31,13 +31,22 @@ src/
 
 ```
 tests/
-  unit/          # command policy with FakeUoW / FakeRepo (no Postgres)
-  integration/   # real UoW, repositories, DB-backed command paths
-  functional/    # HTTP via TestClient
-  conftest.py
-  helpers.py
-  fakes.py       # shared FakeUoW / FakeRepo (Protocol impls; not under src/)
+  unit/            # pure functions, model methods, custom schema validators (no Postgres)
+  integration/
+    commands/      # one class per command; business rules
+    queries/       # one class per query
+    repositories/  # constraints + aggregates
+    test_uow.py    # commit / rollback / error mapping
+  functional/      # HTTP via TestClient
+    customers/     # one class per endpoint
+    cycles/
+    orders/
+  conftest.py      # truncate_tables()
+  generators.py    # make_* persisted model generators
+  helpers.py       # small pure helpers (e.g. unique_email)
 ```
+
+Conventions live in [.cursor/rules/tests.mdc](.cursor/rules/tests.mdc).
 
 pytest-env in `pyproject.toml` points DB-backed tests at `db_test`. How to run them is in [README.md](README.md). Do not seed the test database.
 

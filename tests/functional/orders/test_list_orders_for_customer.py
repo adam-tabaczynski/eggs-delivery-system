@@ -1,0 +1,38 @@
+from fastapi.testclient import TestClient
+
+from src.main import app
+from src.models import OrderStatus
+from tests.generators import make_customer, make_cycle, make_order, make_provider
+
+client = TestClient(app)
+
+
+class TestListOrdersForCustomer:
+    def test_lists_open_and_cancelled_orders(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        opened = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=12)
+        cancelled = make_order(
+            cycle_id=cycle.id,
+            customer_id=customer.id,
+            quantity=6,
+            status=OrderStatus.CANCELLED,
+        )
+
+        response = client.get(f"/customers/{customer.id}/orders")
+        assert response.status_code == 200
+        by_id = {listed["id"]: listed for listed in response.json()}
+        assert by_id.keys() == {opened.id, cancelled.id}
+        assert by_id[opened.id]["status"] == "open"
+        assert by_id[opened.id]["quantity"] == 12
+        assert by_id[cancelled.id]["status"] == "cancelled"
+        assert by_id[cancelled.id]["quantity"] == 6
+
+    def test_unknown_customer(self) -> None:
+        response = client.get("/customers/0/orders")
+        assert response.status_code == 404
+        assert response.json() == {
+            "code": "customer_not_found",
+            "message": "Customer not found",
+        }

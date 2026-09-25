@@ -63,7 +63,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Place / update quantity / soft-cancel only before cutoff while cycle open
 - [x] Customer: list own orders (open + cancelled)
 - [x] FCFS capacity: sum of open quantities ≤ `max_eggs`
-- [ ] Refactor tests: drop fakes, model generators, regroup files, truncate after suite
+- [x] Refactor tests: drop fakes, model generators, regroup files, truncate after suite
 - [ ] One open order per customer per cycle; POST when one exists → 409 (use PATCH)
 - [ ] Provider: list orders for a cycle (open + cancelled)
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)

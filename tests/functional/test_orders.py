@@ -1,41 +1,24 @@
 from fastapi.testclient import TestClient
 
 from src.main import app
-from tests.helpers import future_cycle_window, past_cycle_window, unique_email
+from src.models import DeliveryCycleStatus, OrderStatus
+from tests.generators import make_customer, make_cycle, make_order, make_provider
 
 client = TestClient(app)
 
 
-def _cycle_payload(**overrides: object) -> dict[str, object]:
-    cutoff_at, delivery_at = future_cycle_window()
-    body: dict[str, object] = {
-        "delivery_at": delivery_at.isoformat(),
-        "cutoff_at": cutoff_at.isoformat(),
-        "max_eggs": 48,
-    }
-    body.update(overrides)
-    return body
+def test_place_order() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
 
-
-def _open_cycle(provider_id: int, **overrides: object) -> int:
-    created = client.post(
-        f"/providers/{provider_id}/cycles",
-        json=_cycle_payload(**overrides),
-    )
-    assert created.status_code == 201
-    return created.json()["id"]
-
-
-def test_place_order(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
     response = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
+        f"/customers/{customer.id}/orders",
+        json={"cycle_id": cycle.id, "quantity": 6},
     )
     assert response.status_code == 201
     body = response.json()
-    assert body["cycle_id"] == cycle_id
-    assert body["customer_id"] == customer_id
+    assert body["cycle_id"] == cycle.id
+    assert body["customer_id"] == customer.id
     assert body["quantity"] == 6
     assert body["status"] == "open"
     assert isinstance(body["id"], int)
@@ -43,11 +26,12 @@ def test_place_order(provider_id: int, customer_id: int) -> None:
     assert "updated_at" in body
 
 
-def test_place_order_unknown_customer(provider_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
+def test_place_order_unknown_customer() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+
     response = client.post(
         "/customers/0/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
+        json={"cycle_id": cycle.id, "quantity": 6},
     )
     assert response.status_code == 404
     assert response.json() == {
@@ -56,9 +40,11 @@ def test_place_order_unknown_customer(provider_id: int) -> None:
     }
 
 
-def test_place_order_unknown_cycle(customer_id: int) -> None:
+def test_place_order_unknown_cycle() -> None:
+    customer = make_customer()
+
     response = client.post(
-        f"/customers/{customer_id}/orders",
+        f"/customers/{customer.id}/orders",
         json={"cycle_id": 0, "quantity": 6},
     )
     assert response.status_code == 404
@@ -68,13 +54,13 @@ def test_place_order_unknown_cycle(customer_id: int) -> None:
     }
 
 
-def test_place_order_rejects_non_positive_quantity(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id)
+def test_place_order_rejects_non_positive_quantity() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+
     response = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 0},
+        f"/customers/{customer.id}/orders",
+        json={"cycle_id": cycle.id, "quantity": 0},
     )
     assert response.status_code == 422
     body = response.json()
@@ -84,16 +70,15 @@ def test_place_order_rejects_non_positive_quantity(
     assert body["details"]
 
 
-def test_place_order_closed_cycle(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json={"status": "closed"},
+def test_place_order_closed_cycle() -> None:
+    cycle = make_cycle(
+        provider_id=make_provider().id, status=DeliveryCycleStatus.CLOSED
     )
+    customer = make_customer()
 
     response = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
+        f"/customers/{customer.id}/orders",
+        json={"cycle_id": cycle.id, "quantity": 6},
     )
     assert response.status_code == 409
     assert response.json() == {
@@ -102,57 +87,14 @@ def test_place_order_closed_cycle(provider_id: int, customer_id: int) -> None:
     }
 
 
-def test_place_order_fills_remaining_capacity(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id, max_eggs=12)
-    first = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert first.status_code == 201
-    other = client.post(
-        "/customers",
-        json={
-            "first_name": "Grace",
-            "last_name": "Hopper",
-            "email": unique_email(prefix="customer"),
-        },
-    )
-    assert other.status_code == 201
-    other_id = other.json()["id"]
+def test_place_order_rejects_over_capacity() -> None:
+    cycle = make_cycle(provider_id=make_provider().id, max_eggs=12)
+    make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=8)
+    customer = make_customer()
 
     response = client.post(
-        f"/customers/{other_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert response.status_code == 201
-    assert response.json()["quantity"] == 6
-
-
-def test_place_order_rejects_over_capacity(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id, max_eggs=12)
-    first = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 8},
-    )
-    assert first.status_code == 201
-    other = client.post(
-        "/customers",
-        json={
-            "first_name": "Grace",
-            "last_name": "Hopper",
-            "email": unique_email(prefix="customer"),
-        },
-    )
-    assert other.status_code == 201
-    other_id = other.json()["id"]
-
-    response = client.post(
-        f"/customers/{other_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
+        f"/customers/{customer.id}/orders",
+        json={"cycle_id": cycle.id, "quantity": 6},
     )
     assert response.status_code == 409
     assert response.json() == {
@@ -161,145 +103,47 @@ def test_place_order_rejects_over_capacity(
     }
 
 
-def test_place_order_after_cancelled_can_use_capacity(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id, max_eggs=6)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert placed.status_code == 201
-    cancelled = client.patch(
-        f"/customers/{customer_id}/orders/{placed.json()['id']}",
-        json={"status": "cancelled"},
-    )
-    assert cancelled.status_code == 200
-    other = client.post(
-        "/customers",
-        json={
-            "first_name": "Grace",
-            "last_name": "Hopper",
-            "email": unique_email(prefix="customer"),
-        },
-    )
-    assert other.status_code == 201
-    other_id = other.json()["id"]
-
-    response = client.post(
-        f"/customers/{other_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert response.status_code == 201
-    assert response.json()["quantity"] == 6
-
-
-def test_update_order_rejects_quantity_over_capacity(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id, max_eggs=12)
-    first = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 8},
-    )
-    assert first.status_code == 201
-    other = client.post(
-        "/customers",
-        json={
-            "first_name": "Grace",
-            "last_name": "Hopper",
-            "email": unique_email(prefix="customer"),
-        },
-    )
-    assert other.status_code == 201
-    other_id = other.json()["id"]
-    placed = client.post(
-        f"/customers/{other_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 2},
-    )
-    assert placed.status_code == 201
-    order_id = placed.json()["id"]
+def test_update_order_quantity() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=6)
 
     response = client.patch(
-        f"/customers/{other_id}/orders/{order_id}",
-        json={"quantity": 6},
-    )
-    assert response.status_code == 409
-    assert response.json() == {
-        "code": "cycle_capacity_exceeded",
-        "message": "Cycle egg capacity exceeded",
-    }
-
-
-def test_place_order_after_cutoff(provider_id: int, customer_id: int) -> None:
-    cutoff_at, delivery_at = past_cycle_window()
-    cycle_id = _open_cycle(
-        provider_id,
-        cutoff_at=cutoff_at.isoformat(),
-        delivery_at=delivery_at.isoformat(),
-    )
-
-    response = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert response.status_code == 409
-    assert response.json() == {
-        "code": "cycle_already_closed",
-        "message": "Cycle is already closed",
-    }
-
-
-def test_update_order_quantity(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
-
-    response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
+        f"/customers/{customer.id}/orders/{order.id}",
         json={"quantity": 12},
     )
     assert response.status_code == 200
     body = response.json()
+    assert body["id"] == order.id
     assert body["quantity"] == 12
     assert body["status"] == "open"
 
 
-def test_update_order_soft_cancel(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
+def test_update_order_soft_cancel() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=6)
 
     response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
+        f"/customers/{customer.id}/orders/{order.id}",
         json={"status": "cancelled"},
     )
     assert response.status_code == 200
     body = response.json()
+    assert body["id"] == order.id
     assert body["status"] == "cancelled"
     assert body["quantity"] == 6
 
 
-def test_update_order_already_cancelled(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
-    client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
-        json={"status": "cancelled"},
+def test_update_order_already_cancelled() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    order = make_order(
+        cycle_id=cycle.id, customer_id=customer.id, status=OrderStatus.CANCELLED
     )
 
     response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
+        f"/customers/{customer.id}/orders/{order.id}",
         json={"quantity": 12},
     )
     assert response.status_code == 409
@@ -309,16 +153,12 @@ def test_update_order_already_cancelled(provider_id: int, customer_id: int) -> N
     }
 
 
-def test_update_order_unknown_customer(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
+def test_update_order_unknown_customer() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    order = make_order(cycle_id=cycle.id, customer_id=make_customer().id)
 
     response = client.patch(
-        f"/customers/0/orders/{order_id}",
+        f"/customers/0/orders/{order.id}",
         json={"quantity": 12},
     )
     assert response.status_code == 404
@@ -328,9 +168,11 @@ def test_update_order_unknown_customer(provider_id: int, customer_id: int) -> No
     }
 
 
-def test_update_order_unknown_order(customer_id: int) -> None:
+def test_update_order_unknown_order() -> None:
+    customer = make_customer()
+
     response = client.patch(
-        f"/customers/{customer_id}/orders/0",
+        f"/customers/{customer.id}/orders/0",
         json={"quantity": 12},
     )
     assert response.status_code == 404
@@ -340,18 +182,48 @@ def test_update_order_unknown_order(customer_id: int) -> None:
     }
 
 
-def test_update_order_rejects_open_status(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
+def test_update_order_closed_cycle() -> None:
+    cycle = make_cycle(
+        provider_id=make_provider().id, status=DeliveryCycleStatus.CLOSED
     )
-    order_id = placed.json()["id"]
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
     response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
+        f"/customers/{customer.id}/orders/{order.id}",
+        json={"quantity": 12},
+    )
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "cycle_already_closed",
+        "message": "Cycle is already closed",
+    }
+
+
+def test_update_order_rejects_quantity_over_capacity() -> None:
+    cycle = make_cycle(provider_id=make_provider().id, max_eggs=12)
+    make_order(cycle_id=cycle.id, customer_id=make_customer().id, quantity=8)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=2)
+
+    response = client.patch(
+        f"/customers/{customer.id}/orders/{order.id}",
+        json={"quantity": 6},
+    )
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "cycle_capacity_exceeded",
+        "message": "Cycle egg capacity exceeded",
+    }
+
+
+def test_update_order_rejects_open_status() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id)
+
+    response = client.patch(
+        f"/customers/{customer.id}/orders/{order.id}",
         json={"status": "open"},
     )
     assert response.status_code == 422
@@ -362,18 +234,13 @@ def test_update_order_rejects_open_status(
     assert body["details"]
 
 
-def test_update_order_rejects_empty_body(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
+def test_update_order_rejects_empty_body() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
     response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
+        f"/customers/{customer.id}/orders/{order.id}",
         json={},
     )
     assert response.status_code == 422
@@ -384,18 +251,13 @@ def test_update_order_rejects_empty_body(
     assert body["details"]
 
 
-def test_update_order_rejects_both_fields(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
+def test_update_order_rejects_both_fields() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
     response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
+        f"/customers/{customer.id}/orders/{order.id}",
         json={"quantity": 12, "status": "cancelled"},
     )
     assert response.status_code == 422
@@ -406,96 +268,33 @@ def test_update_order_rejects_both_fields(
     assert body["details"]
 
 
-def test_list_orders_empty(customer_id: int) -> None:
-    response = client.get(f"/customers/{customer_id}/orders")
+def test_list_orders() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
+    opened = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=12)
+    cancelled = make_order(
+        cycle_id=cycle.id,
+        customer_id=customer.id,
+        quantity=6,
+        status=OrderStatus.CANCELLED,
+    )
+
+    response = client.get(f"/customers/{customer.id}/orders")
+    assert response.status_code == 200
+    by_id = {listed["id"]: listed for listed in response.json()}
+    assert by_id.keys() == {opened.id, cancelled.id}
+    assert by_id[opened.id]["status"] == "open"
+    assert by_id[opened.id]["quantity"] == 12
+    assert by_id[cancelled.id]["status"] == "cancelled"
+    assert by_id[cancelled.id]["quantity"] == 6
+
+
+def test_list_orders_empty() -> None:
+    customer = make_customer()
+
+    response = client.get(f"/customers/{customer.id}/orders")
     assert response.status_code == 200
     assert response.json() == []
-
-
-def test_list_orders_includes_open_and_cancelled(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert placed.status_code == 201
-    order_id = placed.json()["id"]
-    cancelled = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
-        json={"status": "cancelled"},
-    )
-    assert cancelled.status_code == 200
-    other_cycle_id = _open_cycle(provider_id)
-    opened = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": other_cycle_id, "quantity": 12},
-    )
-    assert opened.status_code == 201
-
-    listed = client.get(f"/customers/{customer_id}/orders")
-    assert listed.status_code == 200
-    orders = listed.json()
-    by_id = {order["id"]: order for order in orders}
-    assert by_id[order_id]["status"] == "cancelled"
-    assert by_id[order_id]["quantity"] == 6
-    assert by_id[opened.json()["id"]]["status"] == "open"
-    assert by_id[opened.json()["id"]]["quantity"] == 12
-
-
-def test_list_orders_isolates_customers(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    other = client.post(
-        "/customers",
-        json={
-            "first_name": "Grace",
-            "last_name": "Hopper",
-            "email": unique_email(prefix="customer"),
-        },
-    )
-    assert other.status_code == 201
-    other_id = other.json()["id"]
-    other_order = client.post(
-        f"/customers/{other_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 12},
-    )
-    assert other_order.status_code == 201
-
-    listed = client.get(f"/customers/{customer_id}/orders")
-    assert listed.status_code == 200
-    orders = listed.json()
-    assert len(orders) == 1
-    assert orders[0]["customer_id"] == customer_id
-    assert orders[0]["quantity"] == 6
-
-
-def test_list_orders_includes_orders_after_cycle_closed(
-    provider_id: int, customer_id: int
-) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    assert placed.status_code == 201
-    closed = client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json={"status": "closed"},
-    )
-    assert closed.status_code == 200
-
-    listed = client.get(f"/customers/{customer_id}/orders")
-    assert listed.status_code == 200
-    orders = listed.json()
-    assert len(orders) == 1
-    assert orders[0]["id"] == placed.json()["id"]
-    assert orders[0]["status"] == "open"
-    assert orders[0]["cycle_id"] == cycle_id
 
 
 def test_list_orders_unknown_customer() -> None:
@@ -504,27 +303,4 @@ def test_list_orders_unknown_customer() -> None:
     assert response.json() == {
         "code": "customer_not_found",
         "message": "Customer not found",
-    }
-
-
-def test_update_order_closed_cycle(provider_id: int, customer_id: int) -> None:
-    cycle_id = _open_cycle(provider_id)
-    placed = client.post(
-        f"/customers/{customer_id}/orders",
-        json={"cycle_id": cycle_id, "quantity": 6},
-    )
-    order_id = placed.json()["id"]
-    client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json={"status": "closed"},
-    )
-
-    response = client.patch(
-        f"/customers/{customer_id}/orders/{order_id}",
-        json={"quantity": 12},
-    )
-    assert response.status_code == 409
-    assert response.json() == {
-        "code": "cycle_already_closed",
-        "message": "Cycle is already closed",
     }

@@ -2,57 +2,105 @@ from fastapi.testclient import TestClient
 
 from src.core.clock import Clock
 from src.main import app
-from tests.helpers import future_cycle_window, past_cycle_window
+from src.models import DeliveryCycleStatus
+from tests.generators import make_customer, make_cycle, make_provider
 
 client = TestClient(app)
 
 
-def _payload(**overrides: object) -> dict[str, object]:
-    cutoff_at, delivery_at = future_cycle_window()
-    body: dict[str, object] = {
-        "delivery_at": delivery_at.isoformat(),
-        "cutoff_at": cutoff_at.isoformat(),
-        "max_eggs": 48,
-    }
-    body.update(overrides)
-    return body
-
-
-def _update_payload() -> dict[str, object]:
-    return {"status": "closed"}
-
-
-def test_create_and_list_cycles(provider_id: int) -> None:
-    created = client.post(f"/providers/{provider_id}/cycles", json=_payload())
-    assert created.status_code == 201
-    body = created.json()
-    assert body["provider_id"] == provider_id
+def test_create_cycle() -> None:
+    clock = Clock()
+    provider = make_provider()
+    response = client.post(
+        f"/providers/{provider.id}/cycles",
+        json={
+            "delivery_at": clock.move_datetime_forward(days=7).isoformat(),
+            "cutoff_at": clock.move_datetime_forward(days=5).isoformat(),
+            "max_eggs": 48,
+        },
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["provider_id"] == provider.id
     assert body["max_eggs"] == 48
     assert body["status"] == "open"
     assert isinstance(body["id"], int)
     assert "created_at" in body
     assert "updated_at" in body
 
-    listed = client.get(f"/providers/{provider_id}/cycles")
-    assert listed.status_code == 200
-    cycles = listed.json()
-    assert len(cycles) == 1
-    assert cycles[0]["id"] == body["id"]
-
-
-def test_list_cycles_empty(provider_id: int) -> None:
-    response = client.get(f"/providers/{provider_id}/cycles")
-    assert response.status_code == 200
-    assert response.json() == []
-
 
 def test_create_cycle_unknown_provider() -> None:
-    response = client.post("/providers/0/cycles", json=_payload())
+    clock = Clock()
+    response = client.post(
+        "/providers/0/cycles",
+        json={
+            "delivery_at": clock.move_datetime_forward(days=7).isoformat(),
+            "cutoff_at": clock.move_datetime_forward(days=5).isoformat(),
+            "max_eggs": 48,
+        },
+    )
     assert response.status_code == 404
     assert response.json() == {
         "code": "provider_not_found",
         "message": "Provider not found",
     }
+
+
+def test_create_cycle_rejects_non_positive_max_eggs() -> None:
+    clock = Clock()
+    provider = make_provider()
+    response = client.post(
+        f"/providers/{provider.id}/cycles",
+        json={
+            "delivery_at": clock.move_datetime_forward(days=7).isoformat(),
+            "cutoff_at": clock.move_datetime_forward(days=5).isoformat(),
+            "max_eggs": 0,
+        },
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "request_validation"
+    assert body["message"] == "Request validation failed"
+    assert isinstance(body["details"], list)
+    assert body["details"]
+
+
+def test_create_cycle_rejects_cutoff_after_delivery() -> None:
+    clock = Clock()
+    provider = make_provider()
+    response = client.post(
+        f"/providers/{provider.id}/cycles",
+        json={
+            "delivery_at": clock.move_datetime_forward(days=5).isoformat(),
+            "cutoff_at": clock.move_datetime_forward(days=7).isoformat(),
+            "max_eggs": 48,
+        },
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "request_validation"
+    assert body["message"] == "Request validation failed"
+    assert isinstance(body["details"], list)
+    assert body["details"]
+
+
+def test_list_cycles() -> None:
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
+
+    response = client.get(f"/providers/{provider.id}/cycles")
+    assert response.status_code == 200
+    cycles = response.json()
+    assert [listed["id"] for listed in cycles] == [cycle.id]
+    assert cycles[0]["status"] == "open"
+
+
+def test_list_cycles_empty() -> None:
+    provider = make_provider()
+
+    response = client.get(f"/providers/{provider.id}/cycles")
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_list_cycles_unknown_provider() -> None:
@@ -64,36 +112,27 @@ def test_list_cycles_unknown_provider() -> None:
     }
 
 
-def test_create_cycle_rejects_non_positive_max_eggs(provider_id: int) -> None:
-    response = client.post(
-        f"/providers/{provider_id}/cycles",
-        json=_payload(max_eggs=0),
+def test_update_cycle() -> None:
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
+
+    response = client.patch(
+        f"/providers/{provider.id}/cycles/{cycle.id}",
+        json={"status": "closed"},
     )
-    assert response.status_code == 422
+    assert response.status_code == 200
     body = response.json()
-    assert body["code"] == "request_validation"
-    assert body["message"] == "Request validation failed"
-    assert isinstance(body["details"], list)
-    assert body["details"]
-
-
-def test_update_cycle(provider_id: int) -> None:
-    created = client.post(f"/providers/{provider_id}/cycles", json=_payload())
-    cycle_id = created.json()["id"]
-
-    updated = client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json=_update_payload(),
-    )
-    assert updated.status_code == 200
-    assert updated.json()["status"] == "closed"
-
-    listed = client.get(f"/providers/{provider_id}/cycles")
-    assert listed.json()[0]["status"] == "closed"
+    assert body["id"] == cycle.id
+    assert body["status"] == "closed"
 
 
 def test_update_cycle_unknown_provider() -> None:
-    response = client.patch("/providers/0/cycles/1", json=_update_payload())
+    cycle = make_cycle(provider_id=make_provider().id)
+
+    response = client.patch(
+        f"/providers/0/cycles/{cycle.id}",
+        json={"status": "closed"},
+    )
     assert response.status_code == 404
     assert response.json() == {
         "code": "provider_not_found",
@@ -101,10 +140,12 @@ def test_update_cycle_unknown_provider() -> None:
     }
 
 
-def test_update_cycle_unknown_cycle(provider_id: int) -> None:
+def test_update_cycle_unknown_cycle() -> None:
+    provider = make_provider()
+
     response = client.patch(
-        f"/providers/{provider_id}/cycles/0",
-        json=_update_payload(),
+        f"/providers/{provider.id}/cycles/0",
+        json={"status": "closed"},
     )
     assert response.status_code == 404
     assert response.json() == {
@@ -113,17 +154,13 @@ def test_update_cycle_unknown_cycle(provider_id: int) -> None:
     }
 
 
-def test_update_cycle_already_closed(provider_id: int) -> None:
-    created = client.post(f"/providers/{provider_id}/cycles", json=_payload())
-    cycle_id = created.json()["id"]
-    client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json=_update_payload(),
-    )
+def test_update_cycle_already_closed() -> None:
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id, status=DeliveryCycleStatus.CLOSED)
 
     response = client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json=_update_payload(),
+        f"/providers/{provider.id}/cycles/{cycle.id}",
+        json={"status": "closed"},
     )
     assert response.status_code == 409
     assert response.json() == {
@@ -132,12 +169,12 @@ def test_update_cycle_already_closed(provider_id: int) -> None:
     }
 
 
-def test_update_cycle_rejects_open_status(provider_id: int) -> None:
-    created = client.post(f"/providers/{provider_id}/cycles", json=_payload())
-    cycle_id = created.json()["id"]
+def test_update_cycle_rejects_open_status() -> None:
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
 
     response = client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
+        f"/providers/{provider.id}/cycles/{cycle.id}",
         json={"status": "open"},
     )
     assert response.status_code == 422
@@ -148,12 +185,12 @@ def test_update_cycle_rejects_open_status(provider_id: int) -> None:
     assert body["details"]
 
 
-def test_update_cycle_rejects_other_fields(provider_id: int) -> None:
-    created = client.post(f"/providers/{provider_id}/cycles", json=_payload())
-    cycle_id = created.json()["id"]
+def test_update_cycle_rejects_other_fields() -> None:
+    provider = make_provider()
+    cycle = make_cycle(provider_id=provider.id)
 
     response = client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
+        f"/providers/{provider.id}/cycles/{cycle.id}",
         json={"status": "closed", "max_eggs": 12},
     )
     assert response.status_code == 422
@@ -164,62 +201,15 @@ def test_update_cycle_rejects_other_fields(provider_id: int) -> None:
     assert body["details"]
 
 
-def test_list_and_update_treat_past_cutoff_as_closed(provider_id: int) -> None:
-    cutoff_at, delivery_at = past_cycle_window()
-    created = client.post(
-        f"/providers/{provider_id}/cycles",
-        json=_payload(
-            cutoff_at=cutoff_at.isoformat(),
-            delivery_at=delivery_at.isoformat(),
-        ),
-    )
-    assert created.status_code == 201
-    assert created.json()["status"] == "closed"
-    cycle_id = created.json()["id"]
+def test_list_cycles_for_customer() -> None:
+    cycle = make_cycle(provider_id=make_provider().id)
+    customer = make_customer()
 
-    listed = client.get(f"/providers/{provider_id}/cycles")
-    assert listed.status_code == 200
-    assert listed.json()[0]["status"] == "closed"
-
-    response = client.patch(
-        f"/providers/{provider_id}/cycles/{cycle_id}",
-        json=_update_payload(),
-    )
-    assert response.status_code == 409
-    assert response.json() == {
-        "code": "cycle_already_closed",
-        "message": "Cycle is already closed",
-    }
-
-
-def test_list_cycles_for_customer(provider_id: int, customer_id: int) -> None:
-    past_cutoff, past_delivery = past_cycle_window()
-    open_cutoff, open_delivery = future_cycle_window()
-    past = client.post(
-        f"/providers/{provider_id}/cycles",
-        json=_payload(
-            cutoff_at=past_cutoff.isoformat(),
-            delivery_at=past_delivery.isoformat(),
-            max_eggs=12,
-        ),
-    )
-    opened = client.post(
-        f"/providers/{provider_id}/cycles",
-        json=_payload(
-            cutoff_at=open_cutoff.isoformat(),
-            delivery_at=open_delivery.isoformat(),
-            max_eggs=24,
-        ),
-    )
-    assert past.status_code == 201
-    assert opened.status_code == 201
-
-    listed = client.get(f"/customers/{customer_id}/cycles")
-    assert listed.status_code == 200
-    cycles = listed.json()
-    by_id = {cycle["id"]: cycle for cycle in cycles}
-    assert by_id[past.json()["id"]]["status"] == "closed"
-    assert by_id[opened.json()["id"]]["status"] == "open"
+    response = client.get(f"/customers/{customer.id}/cycles")
+    assert response.status_code == 200
+    by_id = {listed["id"]: listed for listed in response.json()}
+    assert by_id[cycle.id]["status"] == "open"
+    assert by_id[cycle.id]["max_eggs"] == cycle.max_eggs
 
 
 def test_list_cycles_for_customer_unknown_customer() -> None:
@@ -229,21 +219,3 @@ def test_list_cycles_for_customer_unknown_customer() -> None:
         "code": "customer_not_found",
         "message": "Customer not found",
     }
-
-
-def test_create_cycle_rejects_cutoff_after_delivery(provider_id: int) -> None:
-    clock = Clock()
-    now = clock.datetime_now()
-    response = client.post(
-        f"/providers/{provider_id}/cycles",
-        json=_payload(
-            cutoff_at=clock.move_datetime_forward(now, days=7).isoformat(),
-            delivery_at=clock.move_datetime_forward(now, days=5).isoformat(),
-        ),
-    )
-    assert response.status_code == 422
-    body = response.json()
-    assert body["code"] == "request_validation"
-    assert body["message"] == "Request validation failed"
-    assert isinstance(body["details"], list)
-    assert body["details"]

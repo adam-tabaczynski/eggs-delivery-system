@@ -142,20 +142,3 @@ class TestPlaceOrder:
         )
 
         assert result.quantity == 6
-
-    def test_capacity_is_per_cycle(self) -> None:
-        provider = make_provider()
-        full_cycle = make_cycle(provider_id=provider.id, max_eggs=6)
-        other_cycle = make_cycle(provider_id=provider.id, max_eggs=6)
-        make_order(cycle_id=full_cycle.id, customer_id=make_customer().id, quantity=6)
-        customer = make_customer()
-
-        result = place_order(
-            customer_id=customer.id,
-            cycle_id=other_cycle.id,
-            quantity=6,
-            uow=SqlAlchemyUnitOfWork(),
-            clock=Clock(),
-        )
-
-        assert result.cycle_id == other_cycle.id

@@ -52,3 +52,7 @@ Solo workflow: short-lived branches, then merge back.
 **Phase integration** (e.g. `feat/phase-1-mvp-domain`):
 - Long-lived phase branch off `main`; merge to `main` **without** squash
 - Short-lived feature branches **squash-merge** onto the phase branch
+
+**Landing a branch:** push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
+- PR title: same style as a commit subject
+- PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `uv run pytest` plus manual checks)

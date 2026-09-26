@@ -5,6 +5,7 @@ from src.exceptions import (
     CycleCapacityExceeded,
     CycleNotFound,
     CustomerNotFound,
+    OpenOrderAlreadyExists,
     OrderAlreadyCancelled,
     OrderNotFound,
 )
@@ -39,6 +40,11 @@ def place_order(
             raise CycleNotFound()
         if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
             raise CycleAlreadyClosed()
+        open_order = uow.orders.get_open_order_for_customer(
+            customer_id=customer_id, cycle_id=cycle_id
+        )
+        if open_order is not None:
+            raise OpenOrderAlreadyExists()
         _ensure_cycle_capacity(
             cycle=cycle,
             committed=uow.orders.sum_open_quantity(cycle_id),

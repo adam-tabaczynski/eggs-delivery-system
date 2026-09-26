@@ -57,3 +57,12 @@ class CycleCapacityExceeded(ConflictError):
 
     def __init__(self, message: str = "Cycle egg capacity exceeded") -> None:
         super().__init__(message)
+
+
+class OpenOrderAlreadyExists(ConflictError):
+    code = "open_order_already_exists"
+
+    def __init__(
+        self, message: str = "Customer already has an open order in this cycle"
+    ) -> None:
+        super().__init__(message)

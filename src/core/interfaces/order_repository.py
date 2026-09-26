@@ -10,6 +10,10 @@ class OrderRepository(Protocol):
 
     def list_by_customer_id(self, customer_id: int) -> list[Order]: ...
 
+    def get_open_order_for_customer(
+        self, *, customer_id: int, cycle_id: int
+    ) -> Order | None: ...
+
     def sum_open_quantity(self, cycle_id: int) -> int: ...
 
     def update(

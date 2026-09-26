@@ -36,6 +36,7 @@ The rules as they stand in the code. Update this file in the same branch that ch
 | 10 | Allocated eggs + new/changed quantity `<= max_eggs` → else 409 `cycle_capacity_exceeded` | `place_order`, `update_order` (read-then-write, no lock) |
 | 11 | A Customer can only see / change their own orders; someone else's order → 404 `order_not_found` | `update_order`, `list_orders_for_customer` |
 | 12 | A Provider can only close their own cycles; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle` |
+| 13 | At most one `open` order per Customer per cycle; POST when one exists → 409 `open_order_already_exists` (change quantity with PATCH; the 409 has no order id, find it via `GET /customers/{id}/orders`). Cancelled orders don't count | `place_order` (read-then-write, no lock, no DB index) |
 
 "Schema only" means the rule is checked at the HTTP boundary but not in the DB. "No lock" means two requests at the same time can both pass the check.
 
@@ -54,12 +55,7 @@ The rules as they stand in the code. Update this file in the same branch that ch
 
 ## Open questions
 
-- **One open order per customer per cycle** (next Roadmap item): not enforced yet; a customer can currently place several open orders in one cycle. **Decided, to implement:**
-  - POST when the customer already has an open order in the cycle → 409; they change quantity with PATCH instead.
-  - Cancelled orders don't count. After cancelling, the customer can POST a new open order.
-  - Enforced in `place_order` only, with no DB index. Two concurrent POSTs (e.g. a double-click) can both succeed until the cycle-row lock (below) lands; the lock fixes this.
-  - The 409 body has no existing order id for now. The client finds the order via `GET /customers/{id}/orders`.
-- **FCFS under concurrency** (#10): two concurrent orders can both pass the capacity check and together go over `max_eggs`. **Decided, to implement** (Roadmap item after one-open-order):
+- **FCFS and one-open-order under concurrency** (#10, #13): two concurrent orders can both pass the capacity check and together go over `max_eggs`; two concurrent POSTs from one customer (e.g. a double-click) can both pass the one-open-order check. **Decided, to implement** (next Roadmap item):
   - Every order write (`place_order`, `update_order`) locks its cycle row with `SELECT ... FOR UPDATE` before any check. Writes to the same cycle then run one at a time.
   - `update_order` loads the order only to find its `cycle_id`, locks the cycle, then **re-reads the order** (`session.refresh` / `populate_existing=True`) before its checks. Without this, the session's cached copy could be stale.
   - This also closes the double-click race on one-open-order: the second POST waits, then sees the first order.

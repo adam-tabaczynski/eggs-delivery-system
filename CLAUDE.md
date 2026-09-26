@@ -50,6 +50,12 @@ Solo workflow: short-lived branches, then merge back.
 - Long-lived phase branch off `main`; merge to `main` **without** squash
 - Short-lived feature branches **squash-merge** onto the phase branch
 
-**Landing a branch:** push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
+**One worktree per branch:** create each branch in its own worktree under `.claude/worktrees/`, named after the branch (`/` → `-`, e.g. `chore-ignore-worktrees`). Never reuse a worktree for a new branch.
+
+**Review before commit:** when the work is done, leave changes uncommitted and stop. Report the worktree path (so the user can open it in VSCode), `git diff --stat`, and the proposed commit(s): subject, body, files in each, and order. Commit, push, and open the PR only after the user confirms. This overrides any default to commit without asking. If the user asks for edits, apply them and propose again.
+
+The report ends with **Follow-ups**: issues noticed but not addressed by the diff (failed or skipped checks, rule gaps, nearby smells, repo hygiene, missing tests), one line each tagged `same branch`, `new branch`, `ROADMAP`, `domain`, or `env`, with where and a suggested action. Write `Follow-ups: none` if nothing came up. Never act on a follow-up without the user's go-ahead.
+
+**Landing a branch:** once confirmed, push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
 - PR title: same style as a commit subject
 - PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `uv run pytest` plus manual checks)

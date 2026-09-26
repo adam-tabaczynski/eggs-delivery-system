@@ -8,6 +8,7 @@ from src.exceptions import (
     CycleAlreadyClosed,
     CycleCapacityExceeded,
     CycleNotFound,
+    OpenOrderAlreadyExists,
 )
 from src.models import DeliveryCycleStatus, OrderStatus
 from tests.generators import make_customer, make_cycle, make_order, make_provider
@@ -145,3 +146,55 @@ class TestPlaceOrder:
         )
 
         assert result.quantity == 6
+
+    def test_open_order_already_exists(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=customer.id)
+
+        with pytest.raises(OpenOrderAlreadyExists):
+            place_order(
+                customer_id=customer.id,
+                cycle_id=cycle.id,
+                quantity=6,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
+
+    def test_places_order_after_cancelled_one(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        make_order(
+            cycle_id=cycle.id,
+            customer_id=customer.id,
+            status=OrderStatus.CANCELLED,
+        )
+
+        result = place_order(
+            customer_id=customer.id,
+            cycle_id=cycle.id,
+            quantity=6,
+            uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
+        )
+
+        assert result.status is OrderStatus.OPEN
+
+    def test_places_order_with_open_order_in_other_cycle(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        other_cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        make_order(cycle_id=other_cycle.id, customer_id=customer.id)
+
+        result = place_order(
+            customer_id=customer.id,
+            cycle_id=cycle.id,
+            quantity=6,
+            uow=SqlAlchemyUnitOfWork(),
+            clock=Clock(),
+        )
+
+        assert result.cycle_id == cycle.id

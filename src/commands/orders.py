@@ -40,7 +40,10 @@ def place_order(
             raise CycleNotFound()
         if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
             raise CycleAlreadyClosed()
-        if uow.orders.has_open_order(cycle_id=cycle_id, customer_id=customer_id):
+        open_order = uow.orders.get_open_order_for_customer(
+            customer_id=customer_id, cycle_id=cycle_id
+        )
+        if open_order is not None:
             raise OpenOrderAlreadyExists()
         _ensure_cycle_capacity(
             cycle=cycle,

@@ -1,4 +1,4 @@
-from sqlalchemy import exists, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.core.interfaces.order_repository import OrderRepository
@@ -26,15 +26,15 @@ class SqlAlchemyOrderRepository(OrderRepository):
         )
         return list(self.session.scalars(stmt).all())
 
-    def has_open_order(self, *, cycle_id: int, customer_id: int) -> bool:
-        stmt = select(
-            exists().where(
-                Order.cycle_id == cycle_id,
-                Order.customer_id == customer_id,
-                Order.status == OrderStatus.OPEN,
-            )
+    def get_open_order_for_customer(
+        self, *, customer_id: int, cycle_id: int
+    ) -> Order | None:
+        stmt = select(Order).where(
+            Order.customer_id == customer_id,
+            Order.cycle_id == cycle_id,
+            Order.status == OrderStatus.OPEN,
         )
-        return bool(self.session.scalar(stmt))
+        return self.session.scalars(stmt).first()
 
     def sum_open_quantity(self, cycle_id: int) -> int:
         stmt = select(func.coalesce(func.sum(Order.quantity), 0)).where(

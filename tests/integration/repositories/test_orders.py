@@ -21,7 +21,7 @@ class TestOrderRepository:
         with SqlAlchemyUnitOfWork() as uow:
             assert uow.orders.sum_open_quantity(cycle.id) == 4
 
-    def test_has_open_order_ignores_cancelled_other_cycles_and_other_customers(
+    def test_get_open_order_for_customer_ignores_cancelled_and_other_cycles(
         self,
     ) -> None:
         provider = make_provider()
@@ -35,12 +35,17 @@ class TestOrderRepository:
             status=OrderStatus.CANCELLED,
         )
         make_order(cycle_id=other_cycle.id, customer_id=customer.id)
-        make_order(cycle_id=cycle.id, customer_id=other_customer.id)
+        other_order = make_order(cycle_id=cycle.id, customer_id=other_customer.id)
 
         with SqlAlchemyUnitOfWork() as uow:
-            assert not uow.orders.has_open_order(
-                cycle_id=cycle.id, customer_id=customer.id
+            assert (
+                uow.orders.get_open_order_for_customer(
+                    customer_id=customer.id, cycle_id=cycle.id
+                )
+                is None
             )
-            assert uow.orders.has_open_order(
-                cycle_id=cycle.id, customer_id=other_customer.id
+            found = uow.orders.get_open_order_for_customer(
+                customer_id=other_customer.id, cycle_id=cycle.id
             )
+            assert found is not None
+            assert found.id == other_order.id

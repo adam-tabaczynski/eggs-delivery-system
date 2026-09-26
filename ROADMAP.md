@@ -64,7 +64,9 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Customer: list own orders (open + cancelled)
 - [x] FCFS capacity: sum of open quantities ≤ `max_eggs`
 - [x] Refactor tests: drop fakes, model generators, regroup files, truncate after suite
+- [x] `docs/domain.md`: glossary, invariants (+ where enforced), open questions; CLAUDE.md points to it
 - [ ] One open order per customer per cycle; POST when one exists → 409 (use PATCH)
+- [ ] Lock cycle row (`SELECT ... FOR UPDATE`) on order writes: FCFS + one-open-order safe under concurrency
 - [ ] Provider: list orders for a cycle (open + cancelled)
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)
 - [ ] Provider: get number of allocated_eggs / max_eggs on delivery cycle

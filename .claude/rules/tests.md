@@ -1,7 +1,6 @@
 ---
-description: Test bucket ownership under tests/
-globs: tests/**/*.py
-alwaysApply: false
+paths:
+  - "tests/**/*.py"
 ---
 
 # tests/ conventions

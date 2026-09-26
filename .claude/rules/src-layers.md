@@ -1,7 +1,6 @@
 ---
-description: Layer ownership under src/
-globs: src/**/*.py
-alwaysApply: false
+paths:
+  - "src/**/*.py"
 ---
 
 # src/ layer ownership

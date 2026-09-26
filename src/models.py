@@ -7,6 +7,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.integrations.sqlalchemy.base import Base
+from src.exceptions import CycleCapacityExceeded
 
 
 class Provider(Base):
@@ -78,6 +79,10 @@ class DeliveryCycle(Base):
         if self.status is DeliveryCycleStatus.CLOSED or now >= self.cutoff_at:
             return DeliveryCycleStatus.CLOSED
         return DeliveryCycleStatus.OPEN
+
+    def ensure_capacity(self, *, committed: int, additional: int) -> None:
+        if committed + additional > self.max_eggs:
+            raise CycleCapacityExceeded()
 
 
 class OrderStatus(StrEnum):

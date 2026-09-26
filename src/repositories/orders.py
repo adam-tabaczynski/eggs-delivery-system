@@ -36,11 +36,15 @@ class SqlAlchemyOrderRepository(OrderRepository):
         )
         return self.session.scalars(stmt).first()
 
-    def sum_open_quantity(self, cycle_id: int) -> int:
+    def sum_open_quantity(
+        self, cycle_id: int, *, exclude_order_id: int | None = None
+    ) -> int:
         stmt = select(func.coalesce(func.sum(Order.quantity), 0)).where(
             Order.cycle_id == cycle_id,
             Order.status == OrderStatus.OPEN,
         )
+        if exclude_order_id is not None:
+            stmt = stmt.where(Order.id != exclude_order_id)
         return int(self.session.scalar(stmt))
 
     def update(

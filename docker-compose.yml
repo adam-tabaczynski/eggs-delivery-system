@@ -1,3 +1,5 @@
+name: doorstep-eggs
+
 include:
   - path: docker/compose.db.yml
     project_directory: .

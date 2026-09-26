@@ -18,6 +18,8 @@ uv run pytest                              # pytest-env points at db_test
 make psql                                  # psql into local db
 ```
 
+**Worktrees:** never run `docker compose` from a worktree. Containers are shared: one `db` (5432) and one `db_test` (5433), started by the user from the main checkout. If `db_test` is unreachable, ask the user to start it instead of spawning another. One session runs `uv run pytest` at a time (tests truncate tables).
+
 ## Architecture
 Multilayer under `src/`, by concern (not by domain). Layer ownership rules are in `.claude/rules/src-layers.md`; test conventions are in `.claude/rules/tests.md`.
 

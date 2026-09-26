@@ -29,13 +29,8 @@ Multilayer under `src/`, by concern (not by domain). Layer ownership rules are i
 - Never seed `db_test`. Only the local `db` gets `docker/seed.sql`.
 
 ## Domain
-- Separate `Customer` and `Provider` tables (no shared User + role)
-- Seed one Provider; customers register (no provider registration API)
-- Until Auth lands, callers pass `provider_id` / `customer_id`
-- Cycles: provider create/list; customers list open cycles
-- Orders only before `cutoff_at`; capacity `sum(qty) <= max_eggs` (FCFS)
-- One open order per customer per cycle (update quantity instead of a second open order)
-- Provider view: orders for a cycle + committed eggs vs `max_eggs`
+Rules, glossary and open questions live in `docs/domain.md`; it is the source of truth.
+Before starting a Roadmap item, list the rule questions it raises, settle them, and record the answers in `docs/domain.md` in the same branch.
 
 ## Scope & roadmap
 - `ROADMAP.md` is the checklist; each checkbox is one squashable branch.

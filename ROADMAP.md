@@ -67,10 +67,13 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] `docs/domain.md`: glossary, invariants (+ where enforced), open questions; CLAUDE.md points to it
 - [x] One open order per customer per cycle; POST when one exists → 409 (use PATCH)
 - [ ] Lock cycle row (`SELECT ... FOR UPDATE`) on order writes: FCFS + one-open-order safe under concurrency
+- [ ] ADR in `docs/adr/`: cycle-row lock and rejected concurrency alternatives (moved out of `docs/domain.md` open questions)
+- [ ] Reject cycle creation when `cutoff_at` is not in the future
 - [ ] Provider: list orders for a cycle (open + cancelled)
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)
 - [ ] Provider: get number of allocated_eggs / max_eggs on delivery cycle
 - [ ] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
+- [ ] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
 - [ ] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
 
 
@@ -86,9 +89,10 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 
 ## Geospatial
 
-- [ ] Customer sets house location (`Geography(Point, 4326)` via GeoAlchemy2)
+- [ ] Customer sets house location (`Geography(Point, 4326)` via GeoAlchemy2); optional at registration
+- [ ] Require house location to place an order (`place_order` rejects a Customer without one)
 - [ ] Optional `Provider.depot_location`
-- [ ] Cycle customers with coordinates
+- [ ] Route sheet for an effectively closed, non-cancelled cycle: open orders with each Customer's current location (else 409)
 - [ ] Distances from `Provider.depot_location`
 - [ ] Simple stop ordering (greedy nearest-neighbor)
 - [ ] Keep sync; compute on request

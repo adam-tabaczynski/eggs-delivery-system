@@ -59,3 +59,17 @@ The report ends with **Follow-ups**: issues noticed but not addressed by the dif
 **Landing a branch:** once confirmed, push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
 - PR title: same style as a commit subject
 - PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `uv run pytest` plus manual checks)
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `adam-tabaczynski/eggs-delivery-system`, via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: glossary and rules in `docs/domain.md`, ADRs in `docs/adr/`. See `docs/agents/domain.md`.

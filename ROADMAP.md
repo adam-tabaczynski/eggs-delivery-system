@@ -71,6 +71,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)
 - [ ] Provider: get number of allocated_eggs / max_eggs on delivery cycle
 - [ ] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
+- [ ] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
 
 
 

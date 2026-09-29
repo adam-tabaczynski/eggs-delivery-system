@@ -101,9 +101,9 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
   - This also closes the double-click race on one-open-order: the second POST waits, then sees the first order.
   - "Provider: cancel cycle" and a future "Provider: update delivery cycle" (changing `max_eggs` / `cutoff_at`) must take the same lock.
   - Rejected: SERIALIZABLE (needs retry machinery), stored `allocated_eggs` counter (a second copy to keep in sync), optimistic `version` column, advisory locks, and in-process Python locks (don't work across workers).
-- **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. **Accepted for now**: a close has no side effects yet. Fix when one attaches (e.g. "cycle closed" emails or jobs in the Email / Background work phases) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
+- **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
-- **Cycle creation in the past**: `cutoff_at` can be earlier than now, which creates a cycle that is already effectively closed. Reject it?
+- **Cycle creation in the past**: `cutoff_at` can be earlier than now, which creates a cycle that is already effectively closed. **Decided, to implement** (Roadmap): reject creation unless `cutoff_at` is in the future, matching the planned rule for cycle updates.
 - **Email case**: `A@x.com` and `a@x.com` count as different customers. Normalise? (Probably with `EmailStr` in Auth.)
 - **Customer cycle list**: returns every cycle, including closed and past ones. Filtering comes later (Roadmap).
 

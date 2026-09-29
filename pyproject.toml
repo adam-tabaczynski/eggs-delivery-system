@@ -21,13 +21,28 @@ dev = [
 ]
 
 [tool.pyright]
+pythonVersion = "3.13"
+pythonPlatform = "Linux"
 venvPath = "."
 venv = ".venv"
-pythonVersion = "3.13"
+
+include = ["src", "tests"]
+
+# Analysis Level
+typeCheckingMode = "standard"     # Options: "off", "basic", "standard", "strict"
+
+# Pragmatic Strictness Overrides (Enforce clean code without excessive noise)
+reportImplicitStringConcatenation = false   # Useful for multi-line SQL/prompts
+reportUnusedImport = "warning"
+reportUnusedVariable = "warning"
+reportMissingTypeStubs = false              # Prevents errors for third-party libraries without stubs
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
 env = [
     "POSTGRES_USER=eggs",
     "POSTGRES_PASSWORD=eggs",
@@ -35,3 +50,17 @@ env = [
     "POSTGRES_PORT=5433",
     "POSTGRES_DB=doorstep_eggs_test",
 ]
+
+# Execution Flags
+addopts = [
+    "--strict-markers",        # Treat unregistered custom markers (@pytest.mark.xxx) as errors
+    "--strict-config",         # Fail fast if there's a typo in pytest configuration files
+    "-ra",                     # Show extra summary info for (r)esults: (a)ll except passed
+    "--tb=short",              # Concise traceback formatting (great for terminal & Claude Code)
+    "--disable-warnings",      # Keeps terminal output clean from 3rd-party deprecation warnings
+]
+
+# File & Function Naming Conventions
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

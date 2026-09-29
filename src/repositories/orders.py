@@ -18,6 +18,10 @@ class SqlAlchemyOrderRepository(OrderRepository):
     def get(self, order_id: int) -> Order | None:
         return self.session.get(Order, order_id)
 
+    def refresh(self, order: Order) -> Order:
+        self.session.refresh(order)
+        return order
+
     def list_by_customer_id(self, customer_id: int) -> list[Order]:
         stmt = (
             select(Order)

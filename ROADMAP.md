@@ -66,8 +66,9 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Refactor tests: drop fakes, model generators, regroup files, truncate after suite
 - [x] `docs/domain.md`: glossary, invariants (+ where enforced), open questions; CLAUDE.md points to it
 - [x] One open order per customer per cycle; POST when one exists → 409 (use PATCH)
-- [ ] Lock cycle row (`SELECT ... FOR UPDATE`) on order writes: FCFS + one-open-order safe under concurrency
+- [x] Lock cycle row (`SELECT ... FOR UPDATE`) on order writes: FCFS + one-open-order safe under concurrency
 - [ ] ADR in `docs/adr/`: cycle-row lock and rejected concurrency alternatives (moved out of `docs/domain.md` open questions)
+- [ ] Extract `run_concurrently` test helper (barrier/thread/lock/join boilerplate shared by the concurrency tests) to `tests/helpers.py`
 - [ ] Reject cycle creation when `cutoff_at` is not in the future
 - [ ] Provider: list orders for a cycle (open + cancelled)
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)

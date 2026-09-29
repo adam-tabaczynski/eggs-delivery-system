@@ -18,6 +18,14 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
     def get(self, cycle_id: int) -> DeliveryCycle | None:
         return self.session.get(DeliveryCycle, cycle_id)
 
+    def get_for_update(self, cycle_id: int) -> DeliveryCycle | None:
+        stmt = (
+            select(DeliveryCycle)
+            .where(DeliveryCycle.id == cycle_id)
+            .with_for_update()
+        )
+        return self.session.scalars(stmt).first()
+
     def list_all(self) -> list[DeliveryCycle]:
         stmt = select(DeliveryCycle).order_by(
             DeliveryCycle.delivery_at, DeliveryCycle.id

@@ -24,7 +24,7 @@ def place_order(
     with uow:
         if uow.customers.get(customer_id) is None:
             raise CustomerNotFound()
-        cycle = uow.cycles.get(cycle_id)
+        cycle = uow.cycles.get_for_update(cycle_id)
         if cycle is None:
             raise CycleNotFound()
         if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
@@ -65,9 +65,12 @@ def update_order(
         order = uow.orders.get(order_id)
         if order is None or order.customer_id != customer_id:
             raise OrderNotFound()
-        cycle = uow.cycles.get(order.cycle_id)
+        cycle = uow.cycles.get_for_update(order.cycle_id)
         if cycle is None:
             raise CycleNotFound()
+        # Re-read after the lock: another writer may have changed this order
+        # while we were waiting for it, and our in-memory copy is now stale.
+        uow.orders.refresh(order)
         if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
             raise CycleAlreadyClosed()
         if order.status is OrderStatus.CANCELLED:

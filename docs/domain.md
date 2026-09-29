@@ -41,12 +41,15 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 | 7 | Place / update / cancel an order only while cycle is effectively `open` → else 409 `cycle_already_closed` | `place_order`, `update_order` |
 | 8 | Cancel is one-way; any change to a cancelled order → 409 `order_already_cancelled` | `update_order` |
 | 9 | PATCH order changes exactly one of `quantity` / `status` | Schema (`OrderUpdate`) |
-| 10 | Allocated eggs + new/changed quantity `<= max_eggs` → else 409 `cycle_capacity_exceeded` | `place_order`, `update_order` (read-then-write, no lock) |
+| 10 | Allocated eggs + new/changed quantity `<= max_eggs` → else 409 `cycle_capacity_exceeded` | `place_order`, `update_order`, both behind the cycle-row lock (#14) |
 | 11 | A Customer can only see / change their own orders; someone else's order → 404 `order_not_found` | `update_order`, `list_orders_for_customer` |
 | 12 | A Provider can only close their own cycles; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle` |
-| 13 | At most one `open` order per Customer per cycle; POST when one exists → 409 `open_order_already_exists` (change quantity with PATCH; the 409 has no order id, find it via `GET /customers/{id}/orders`). Cancelled orders don't count | `place_order` (read-then-write, no lock, no DB index) |
+| 13 | At most one `open` order per Customer per cycle; POST when one exists → 409 `open_order_already_exists` (change quantity with PATCH; the 409 has no order id, find it via `GET /customers/{id}/orders`). Cancelled orders don't count | `place_order`, behind the cycle-row lock (#14); no DB index |
+| 14 | Every order write locks its cycle row (`SELECT ... FOR UPDATE`) before any check, so writes to the same cycle run one at a time; `update_order` re-reads the order (`session.refresh`) after taking the lock, since the session's copy could be stale | `place_order`, `update_order` |
 
-"Schema only" means the rule is checked at the HTTP boundary but not in the DB. "No lock" means two requests at the same time can both pass the check.
+"Schema only" means the rule is checked at the HTTP boundary but not in the DB.
+
+`SELECT ... FOR UPDATE` (#14) blocks rather than fails: a request waiting on the lock waits until the holder commits or rolls back, with no timeout. A stuck or slow request holding the lock would block every other write to that cycle. Acceptable for now at this scale; worth a timeout (`SET lock_timeout`) or `nowait`/`skip_locked` if it becomes a problem.
 
 ## Capabilities (current API)
 
@@ -95,12 +98,8 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 
 ## Open questions
 
-- **FCFS and one-open-order under concurrency** (#10, #13): two concurrent orders can both pass the capacity check and together go over `max_eggs`; two concurrent POSTs from one customer (e.g. a double-click) can both pass the one-open-order check. **Decided, to implement** (next Roadmap item):
-  - Every order write (`place_order`, `update_order`) locks its cycle row with `SELECT ... FOR UPDATE` before any check. Writes to the same cycle then run one at a time.
-  - `update_order` loads the order only to find its `cycle_id`, locks the cycle, then **re-reads the order** (`session.refresh` / `populate_existing=True`) before its checks. Without this, the session's cached copy could be stale.
-  - This also closes the double-click race on one-open-order: the second POST waits, then sees the first order.
-  - "Provider: cancel cycle" and a future "Provider: update delivery cycle" (changing `max_eggs` / `cutoff_at`) must take the same lock.
-  - Rejected: SERIALIZABLE (needs retry machinery), stored `allocated_eggs` counter (a second copy to keep in sync), optimistic `version` column, advisory locks, and in-process Python locks (don't work across workers).
+- **FCFS and one-open-order under concurrency** (#10, #13): **Implemented** as #14: the cycle-row lock serializes `place_order` / `update_order` on the same cycle, and `update_order`'s re-read after the lock closes the double-click race on one-open-order (the second call waits, then sees the first order). "Provider: cancel cycle" and a future "Provider: update delivery cycle" (Planned rules, above) must take the same lock.
+  - Rejected: SERIALIZABLE (needs retry machinery), stored `allocated_eggs` counter (a second copy to keep in sync), optimistic `version` column, advisory locks, and in-process Python locks (don't work across workers). (Roadmap: move this to an ADR.)
 - **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
 - **Cycle creation in the past**: `cutoff_at` can be earlier than now, which creates a cycle that is already effectively closed. **Decided, to implement** (Roadmap): reject creation unless `cutoff_at` is in the future, matching the planned rule for cycle updates.

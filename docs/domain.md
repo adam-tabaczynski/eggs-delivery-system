@@ -1,7 +1,15 @@
 # Domain
 
 The rules as they stand in the code. Update this file in the same branch that changes a rule.
-`ROADMAP.md` covers what comes next; this file covers what is true now.
+`ROADMAP.md` covers what comes next; this file covers what is true now, plus rules already decided for later items (**Planned rules**).
+
+## Scope
+
+Doorstep Eggs is an **order book** for a local provider. The system's job ends at a frozen order list and a route sheet for the delivery run.
+
+- Delivery happens outside the system. There is no per-order fulfilment state (`delivered` / `not_delivered`).
+- There is no money in the domain: no prices, amounts owed or payments.
+- Customers place one-off orders for each cycle. There are no standing orders.
 
 ## Glossary
 
@@ -53,16 +61,56 @@ The rules as they stand in the code. Update this file in the same branch that ch
 | Customer | `GET /customers/{id}/orders` | Own orders (open + cancelled), by `created_at` |
 | Customer | `PATCH /customers/{id}/orders/{order_id}` | Change quantity **or** cancel |
 
+## Planned rules
+
+Decided but not yet built. Each rule moves to **Invariants** (with where it's enforced) in the branch that implements it.
+
+### Cycle lifecycle
+
+- Stored status gains `cancelled`: `open → closed → cancelled` or `open → cancelled`. `closed` and `cancelled` are both final; there is no reopen.
+- Effective status: `cancelled` if stored as `cancelled`; otherwise `closed` if stored as `closed` **or** `now >= cutoff_at`; otherwise `open`.
+- After cutoff the order book is frozen. The only thing that changes orders after cutoff is a Provider cycle cancel. There is no per-order shortfall handling: the Provider sorts that out with customers directly.
+
+### Provider: cancel cycle (Roadmap: Orders)
+
+- The Provider can cancel their own cycle any time before `delivery_at`, including after cutoff.
+- Cancelling moves the cycle's `open` orders to the existing `cancelled` order status. The reason is read from the cycle's status, so there's no separate `cancelled_by` field.
+- Cancelling an already cancelled cycle → 409. Closing a cancelled cycle → 409. Cancelling at or after `delivery_at` → 409.
+- The cancel takes the cycle-row lock (`SELECT ... FOR UPDATE`), so the cascade can't race with order writes.
+- To undo a mistaken cancel, the Provider creates a new cycle.
+
+### Provider: update delivery cycle (Roadmap: Auth)
+
+- `cutoff_at` / `delivery_at` / `max_eggs` can be updated only while the cycle is effectively `open`. An update can never reopen a closed cycle.
+- A new `cutoff_at` must be in the future and before `delivery_at`.
+- `max_eggs` can't go below the allocated eggs → 409 `cycle_capacity_exceeded`.
+- The update takes the cycle-row lock.
+
+### Location and route sheet (Roadmap: Geospatial)
+
+- One house location per Customer, always the delivery destination (no per-order address, no depot pickup).
+- Location is optional at registration and required to place an order: `place_order` rejects a Customer without one.
+- The route sheet covers the cycle's `open` orders and uses each Customer's **current** location when it's computed (no snapshot on the order).
+- The route sheet is available only for effectively `closed`, non-cancelled cycles. Otherwise → 409.
+
 ## Open questions
 
 - **FCFS and one-open-order under concurrency** (#10, #13): two concurrent orders can both pass the capacity check and together go over `max_eggs`; two concurrent POSTs from one customer (e.g. a double-click) can both pass the one-open-order check. **Decided, to implement** (next Roadmap item):
   - Every order write (`place_order`, `update_order`) locks its cycle row with `SELECT ... FOR UPDATE` before any check. Writes to the same cycle then run one at a time.
   - `update_order` loads the order only to find its `cycle_id`, locks the cycle, then **re-reads the order** (`session.refresh` / `populate_existing=True`) before its checks. Without this, the session's cached copy could be stale.
   - This also closes the double-click race on one-open-order: the second POST waits, then sees the first order.
-  - A future "Provider: update delivery cycle" (changing `max_eggs` / `cutoff_at`) must take the same lock.
+  - "Provider: cancel cycle" and a future "Provider: update delivery cycle" (changing `max_eggs` / `cutoff_at`) must take the same lock.
   - Rejected: SERIALIZABLE (needs retry machinery), stored `allocated_eggs` counter (a second copy to keep in sync), optimistic `version` column, advisory locks, and in-process Python locks (don't work across workers).
 - **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. **Accepted for now**: a close has no side effects yet. Fix when one attaches (e.g. "cycle closed" emails or jobs in the Email / Background work phases) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
 - **Cycle creation in the past**: `cutoff_at` can be earlier than now, which creates a cycle that is already effectively closed. Reject it?
 - **Email case**: `A@x.com` and `a@x.com` count as different customers. Normalise? (Probably with `EmailStr` in Auth.)
 - **Customer cycle list**: returns every cycle, including closed and past ones. Filtering comes later (Roadmap).
+
+## Future extensions
+
+Out of scope for now; recorded so today's model doesn't block them.
+
+- **Standing orders**: a subscription that places an order automatically when a cycle opens. Deciding who gets capacity first, standing orders or one-off orders, turns FCFS into a real allocation rule.
+- **Per-order fulfilment**: `delivered` / `not_delivered` on orders, and cycle states such as `out_for_delivery` / `completed`.
+- **Money**: a price per egg on each cycle, amounts owed, and eventually real payments.

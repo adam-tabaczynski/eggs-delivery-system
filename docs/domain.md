@@ -49,7 +49,7 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 
 "Schema only" means the rule is checked at the HTTP boundary but not in the DB.
 
-`SELECT ... FOR UPDATE` (#14) blocks rather than fails: a request waiting on the lock waits until the holder commits or rolls back, with no timeout. A stuck or slow request holding the lock would block every other write to that cycle. Acceptable for now at this scale; worth a timeout (`SET lock_timeout`) or `nowait`/`skip_locked` if it becomes a problem.
+Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behaviour: [ADR 0001](adr/0001-cycle-row-lock-for-order-writes.md). "Provider: cancel cycle" and "Provider: update delivery cycle" (Planned rules, below) must take the same lock.
 
 ## Capabilities (current API)
 
@@ -98,8 +98,6 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 
 ## Open questions
 
-- **FCFS and one-open-order under concurrency** (#10, #13): **Implemented** as #14: the cycle-row lock serializes `place_order` / `update_order` on the same cycle, and `update_order`'s re-read after the lock closes the double-click race on one-open-order (the second call waits, then sees the first order). "Provider: cancel cycle" and a future "Provider: update delivery cycle" (Planned rules, above) must take the same lock.
-  - Rejected: SERIALIZABLE (needs retry machinery), stored `allocated_eggs` counter (a second copy to keep in sync), optimistic `version` column, advisory locks, and in-process Python locks (don't work across workers). (Roadmap: move this to an ADR.)
 - **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
 - **Cycle creation in the past**: `cutoff_at` can be earlier than now, which creates a cycle that is already effectively closed. **Decided, to implement** (Roadmap): reject creation unless `cutoff_at` is in the future, matching the planned rule for cycle updates.

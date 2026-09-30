@@ -1,5 +1,3 @@
-import threading
-
 import pytest
 
 from src.commands.orders import update_order
@@ -15,6 +13,7 @@ from src.exceptions import (
 from src.models import DeliveryCycleStatus, OrderStatus
 from src.schemas import OrderRead
 from tests.generators import make_customer, make_cycle, make_order, make_provider
+from tests.helpers import run_concurrently
 
 
 class TestUpdateOrder:
@@ -190,33 +189,20 @@ class TestUpdateOrder:
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
         order = make_order(cycle_id=cycle.id, customer_id=customer.id)
-        barrier = threading.Barrier(2)
-        results: list[OrderRead | Exception] = []
-        results_lock = threading.Lock()
 
-        def cancel() -> None:
-            barrier.wait()
-            try:
-                result: OrderRead | Exception = update_order(
-                    customer_id=customer.id,
-                    order_id=order.id,
-                    status=OrderStatus.CANCELLED,
-                    uow=SqlAlchemyUnitOfWork(),
-                    clock=Clock(),
-                )
-            except OrderAlreadyCancelled as exc:
-                result = exc
-            with results_lock:
-                results.append(result)
+        def cancel() -> OrderRead:
+            return update_order(
+                customer_id=customer.id,
+                order_id=order.id,
+                status=OrderStatus.CANCELLED,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
 
-        threads = [threading.Thread(target=cancel) for _ in range(2)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        outcomes = run_concurrently(cancel, cancel)
 
-        successes = [r for r in results if isinstance(r, OrderRead)]
-        failures = [r for r in results if isinstance(r, OrderAlreadyCancelled)]
+        successes = [o for o in outcomes if isinstance(o, OrderRead)]
+        failures = [o for o in outcomes if isinstance(o, OrderAlreadyCancelled)]
         assert len(successes) == 1
         assert len(failures) == 1
 
@@ -227,34 +213,21 @@ class TestUpdateOrder:
         customer_b = make_customer()
         order_a = make_order(cycle_id=cycle.id, customer_id=customer_a.id, quantity=2)
         order_b = make_order(cycle_id=cycle.id, customer_id=customer_b.id, quantity=2)
-        barrier = threading.Barrier(2)
-        results: dict[str, OrderRead | Exception] = {}
 
-        def increase(name: str, customer_id: int, order_id: int) -> None:
-            barrier.wait()
-            try:
-                results[name] = update_order(
-                    customer_id=customer_id,
-                    order_id=order_id,
-                    quantity=8,
-                    uow=SqlAlchemyUnitOfWork(),
-                    clock=Clock(),
-                )
-            except CycleCapacityExceeded as exc:
-                results[name] = exc
+        def increase(customer_id: int, order_id: int) -> OrderRead:
+            return update_order(
+                customer_id=customer_id,
+                order_id=order_id,
+                quantity=8,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
 
-        thread_a = threading.Thread(
-            target=increase, args=("a", customer_a.id, order_a.id)
+        outcomes = run_concurrently(
+            lambda: increase(customer_a.id, order_a.id),
+            lambda: increase(customer_b.id, order_b.id),
         )
-        thread_b = threading.Thread(
-            target=increase, args=("b", customer_b.id, order_b.id)
-        )
-        thread_a.start()
-        thread_b.start()
-        thread_a.join()
-        thread_b.join()
 
-        outcomes = list(results.values())
         successes = [o for o in outcomes if isinstance(o, OrderRead)]
         failures = [o for o in outcomes if isinstance(o, CycleCapacityExceeded)]
         assert len(successes) == 1

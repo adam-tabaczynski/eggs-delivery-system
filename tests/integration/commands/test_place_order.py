@@ -1,5 +1,3 @@
-import threading
-
 import pytest
 
 from src.commands.orders import place_order
@@ -15,6 +13,7 @@ from src.exceptions import (
 from src.models import DeliveryCycleStatus, OrderStatus
 from src.schemas import OrderRead
 from tests.generators import make_customer, make_cycle, make_order, make_provider
+from tests.helpers import run_concurrently
 
 
 class TestPlaceOrder:
@@ -207,30 +206,20 @@ class TestPlaceOrder:
         cycle = make_cycle(provider_id=provider.id, max_eggs=10)
         customer_a = make_customer()
         customer_b = make_customer()
-        barrier = threading.Barrier(2)
-        results: dict[str, OrderRead | Exception] = {}
 
-        def place(name: str, customer_id: int) -> None:
-            barrier.wait()
-            try:
-                results[name] = place_order(
-                    customer_id=customer_id,
-                    cycle_id=cycle.id,
-                    quantity=6,
-                    uow=SqlAlchemyUnitOfWork(),
-                    clock=Clock(),
-                )
-            except CycleCapacityExceeded as exc:
-                results[name] = exc
+        def place(customer_id: int) -> OrderRead:
+            return place_order(
+                customer_id=customer_id,
+                cycle_id=cycle.id,
+                quantity=6,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
 
-        thread_a = threading.Thread(target=place, args=("a", customer_a.id))
-        thread_b = threading.Thread(target=place, args=("b", customer_b.id))
-        thread_a.start()
-        thread_b.start()
-        thread_a.join()
-        thread_b.join()
+        outcomes = run_concurrently(
+            lambda: place(customer_a.id), lambda: place(customer_b.id)
+        )
 
-        outcomes = list(results.values())
         successes = [o for o in outcomes if isinstance(o, OrderRead)]
         failures = [o for o in outcomes if isinstance(o, CycleCapacityExceeded)]
         assert len(successes) == 1
@@ -240,32 +229,19 @@ class TestPlaceOrder:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
-        barrier = threading.Barrier(2)
-        results: list[OrderRead | Exception] = []
-        results_lock = threading.Lock()
 
-        def place() -> None:
-            barrier.wait()
-            try:
-                result: OrderRead | Exception = place_order(
-                    customer_id=customer.id,
-                    cycle_id=cycle.id,
-                    quantity=6,
-                    uow=SqlAlchemyUnitOfWork(),
-                    clock=Clock(),
-                )
-            except OpenOrderAlreadyExists as exc:
-                result = exc
-            with results_lock:
-                results.append(result)
+        def place() -> OrderRead:
+            return place_order(
+                customer_id=customer.id,
+                cycle_id=cycle.id,
+                quantity=6,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
 
-        threads = [threading.Thread(target=place) for _ in range(2)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        outcomes = run_concurrently(place, place)
 
-        successes = [r for r in results if isinstance(r, OrderRead)]
-        failures = [r for r in results if isinstance(r, OpenOrderAlreadyExists)]
+        successes = [o for o in outcomes if isinstance(o, OrderRead)]
+        failures = [o for o in outcomes if isinstance(o, OpenOrderAlreadyExists)]
         assert len(successes) == 1
         assert len(failures) == 1

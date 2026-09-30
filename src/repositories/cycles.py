@@ -20,9 +20,7 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
 
     def get_for_update(self, cycle_id: int) -> DeliveryCycle | None:
         stmt = (
-            select(DeliveryCycle)
-            .where(DeliveryCycle.id == cycle_id)
-            .with_for_update()
+            select(DeliveryCycle).where(DeliveryCycle.id == cycle_id).with_for_update()
         )
         return self.session.scalars(stmt).first()
 

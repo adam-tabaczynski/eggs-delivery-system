@@ -57,7 +57,9 @@ class TestUnitOfWork:
         with pytest.raises(ConflictError, match="Unique constraint violated"):
             with SqlAlchemyUnitOfWork() as uow:
                 uow.customers.add(
-                    Customer(first_name="Ada", last_name="Lovelace", email=existing.email)
+                    Customer(
+                        first_name="Ada", last_name="Lovelace", email=existing.email
+                    )
                 )
                 uow.commit()
 

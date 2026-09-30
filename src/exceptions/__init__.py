@@ -1,8 +1,8 @@
 from src.exceptions.rules import (
+    CustomerNotFound,
     CycleAlreadyClosed,
     CycleCapacityExceeded,
     CycleNotFound,
-    CustomerNotFound,
     EmailAlreadyRegistered,
     OpenOrderAlreadyExists,
     OrderAlreadyCancelled,
@@ -11,10 +11,10 @@ from src.exceptions.rules import (
 )
 
 __all__ = [
+    "CustomerNotFound",
     "CycleAlreadyClosed",
     "CycleCapacityExceeded",
     "CycleNotFound",
-    "CustomerNotFound",
     "EmailAlreadyRegistered",
     "OpenOrderAlreadyExists",
     "OrderAlreadyCancelled",

@@ -16,7 +16,7 @@ def run_concurrently[T](*calls: Callable[[], T]) -> list[T | Exception]:
         barrier.wait()
         try:
             outcomes[index] = call()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — returned to the test to assert on
             outcomes[index] = exc
 
     threads = [

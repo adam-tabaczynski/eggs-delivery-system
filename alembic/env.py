@@ -1,16 +1,19 @@
-from logging.config import fileConfig
 from collections.abc import MutableMapping
+from logging.config import fileConfig
 from typing import Literal
 
-from sqlalchemy import create_engine
-from sqlalchemy import pool
+from alembic import context
+from sqlalchemy import create_engine, pool
 from sqlalchemy.schema import SchemaItem
 
-from alembic import context
-
-from src.settings import get_settings
 from src.core.integrations.sqlalchemy import Base
-from src.models import Customer, DeliveryCycle, Order, Provider  # noqa: F401 — register metadata
+from src.models import (  # noqa: F401 — register metadata
+    Customer,
+    DeliveryCycle,
+    Order,
+    Provider,
+)
+from src.settings import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -2,6 +2,12 @@
 repos:
   - repo: local
     hooks:
+      # Lint before format: lint fixes can leave code that needs reformatting.
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
       - id: ruff-format
         name: ruff format
         entry: uv run ruff format

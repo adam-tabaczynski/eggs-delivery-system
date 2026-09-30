@@ -3,10 +3,10 @@ from fastapi import FastAPI
 from src.controllers.customers import router as customers_router
 from src.controllers.cycles import router as cycles_router
 from src.controllers.health import router as health_router
-from src.controllers.orders import router as orders_router
 from src.controllers.integrations.fast_api.error_handlers import (
     register_exception_handlers,
 )
+from src.controllers.orders import router as orders_router
 from src.settings import get_settings
 
 __all__ = ["fastapi_app"]

@@ -1,9 +1,9 @@
 from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.exceptions import (
+    CustomerNotFound,
     CycleAlreadyClosed,
     CycleNotFound,
-    CustomerNotFound,
     OpenOrderAlreadyExists,
     OrderAlreadyCancelled,
     OrderNotFound,

@@ -60,7 +60,7 @@ Solo workflow: short-lived branches, then merge back.
 
 The report ends with **Follow-ups**: issues noticed but not addressed by the diff (failed or skipped checks, rule gaps, nearby smells, repo hygiene, missing tests), one line each tagged `same branch`, `new branch`, `ROADMAP`, `domain`, or `env`, with where and a suggested action. Write `Follow-ups: none` if nothing came up. Never act on a follow-up without the user's go-ahead.
 
-**Landing a branch:** once confirmed, push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
+**Landing a branch:** once confirmed (the user types `/ship`, or says so), push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
 - PR title: same style as a commit subject
 - PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `uv run pytest` plus manual checks)
 

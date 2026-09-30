@@ -2,9 +2,8 @@
 
 from sqlalchemy import text
 
-import src.models  # noqa: F401  # registers tables on Base.metadata
-from src.core.integrations.sqlalchemy.base import Base
 from src.core.integrations.sqlalchemy.session import engine
+from src.models import Base  # via models, so every table is registered on Base.metadata
 from src.settings import get_settings
 
 

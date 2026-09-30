@@ -1,4 +1,4 @@
-# Local hook so ruff's version comes from uv.lock, not a second pin here.
+# Local hooks so tool versions come from uv.lock, not a second pin here.
 repos:
   - repo: local
     hooks:
@@ -13,3 +13,10 @@ repos:
         entry: uv run ruff format
         language: system
         types_or: [python, pyi]
+      # Whole project, not just staged files: a change can break types elsewhere.
+      - id: pyright
+        name: pyright
+        entry: uv run pyright
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false

@@ -52,6 +52,8 @@ Solo workflow: short-lived branches, then merge back.
 - Long-lived phase branch off `main`; merge to `main` **without** squash
 - Short-lived feature branches **squash-merge** onto the phase branch
 
+**Bulk reformat branches** (whole-project `ruff format`, or `ruff check --fix` sweeps, no behavior change): keep them free of other changes. After the user merges, add the squash commit's full hash to `.git-blame-ignore-revs` on a small `chore/` branch.
+
 **One worktree per branch:** create each branch in its own worktree under `.claude/worktrees/`, named after the branch (`/` → `-`, e.g. `chore-ignore-worktrees`). Never reuse a worktree for a new branch.
 
 **Review before commit:** when the work is done, leave changes uncommitted and stop. Report the worktree path (so the user can open it in VSCode), `git diff --stat`, and the proposed commit(s): subject, body, files in each, and order. Commit, push, and open the PR only after the user confirms. This overrides any default to commit without asking. If the user asks for edits, apply them and propose again.

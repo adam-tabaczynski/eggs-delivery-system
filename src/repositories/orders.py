@@ -49,7 +49,7 @@ class SqlAlchemyOrderRepository(OrderRepository):
         )
         if exclude_order_id is not None:
             stmt = stmt.where(Order.id != exclude_order_id)
-        return int(self.session.scalar(stmt))
+        return self.session.scalars(stmt).one()
 
     def update(
         self,

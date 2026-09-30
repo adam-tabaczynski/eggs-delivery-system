@@ -5,7 +5,7 @@ Customers order eggs for a delivery cycle.
 Provider opens cycles with cutoff + max egg capacity (FCFS).
 
 ## Stack
-Python 3.13, uv, FastAPI **synchronous** (`def` routes), SQLAlchemy sync + psycopg + Alembic, Postgres + PostGIS (Docker), pytest + pytest-env.
+Python 3.13, uv, FastAPI **synchronous** (`def` routes), SQLAlchemy sync + psycopg + Alembic, Postgres + PostGIS (Docker), pytest + pytest-env, ruff (format via pre-commit) + pyright.
 
 Stick to this stack. Do not add dependencies or change paradigms (e.g. async) unless the user asks or `ROADMAP.md` has reached that work.
 
@@ -16,6 +16,8 @@ uv run alembic upgrade head                # migrate local db
 POSTGRES_PORT=5433 POSTGRES_DB=doorstep_eggs_test uv run alembic upgrade head  # migrate db_test (after new revision / fresh volume)
 uv run pytest                              # pytest-env points at db_test
 make psql                                  # psql into local db
+uv run ruff format .                       # also runs as a pre-commit hook; if it rewrites files, re-stage and commit again
+uv run pyright                             # type check
 ```
 
 **Worktrees:** never run `docker compose` from a worktree. Containers are shared: one `db` (5432) and one `db_test` (5433), started by the user from the main checkout. If `db_test` is unreachable, ask the user to start it instead of spawning another. One session runs `uv run pytest` at a time (tests truncate tables).

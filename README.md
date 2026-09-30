@@ -48,6 +48,7 @@ Requires Postgres/PostGIS reachable using the five `POSTGRES_*` vars from `.env`
 
 ```bash
 uv sync
+uv run pre-commit install    # once per clone: ruff format runs on every commit
 uv run uvicorn src.main:app --reload
 ```
 

@@ -1,7 +1,12 @@
 from collections.abc import Sequence
 from typing import Any
 
-from src.core.exceptions import ConflictError, DomainError, NotFoundError, OperationalError
+from src.core.exceptions import (
+    ConflictError,
+    DomainError,
+    NotFoundError,
+    OperationalError,
+)
 
 
 def error_payload(

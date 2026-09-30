@@ -1,8 +1,9 @@
 from psycopg.errors import CheckViolation, ForeignKeyViolation, UniqueViolation
-from sqlalchemy.exc import IntegrityError, OperationalError as SAOperationalError
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import OperationalError as SAOperationalError
 
-from src.core.integrations.sqlalchemy.errors import map_sqlalchemy_error
 from src.core.exceptions import ConflictError, NotFoundError, OperationalError
+from src.core.integrations.sqlalchemy.errors import map_sqlalchemy_error
 
 
 def test_map_unique_violation() -> None:

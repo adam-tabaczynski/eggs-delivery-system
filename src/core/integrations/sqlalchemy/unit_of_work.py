@@ -52,9 +52,8 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
             cause = exc if exc is not None else rollback_error
             raise map_sqlalchemy_error(rollback_error) from cause
 
-        if exc is not None:
-            if isinstance(exc, SQLAlchemyError):
-                raise map_sqlalchemy_error(exc) from exc
+        if isinstance(exc, SQLAlchemyError):
+            raise map_sqlalchemy_error(exc) from exc
 
         # Allow other errors to propagate as is.
 

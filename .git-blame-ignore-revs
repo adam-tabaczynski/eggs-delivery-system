@@ -1,0 +1,6 @@
+# Bulk formatting commits skipped by `git blame`.
+# GitHub reads this file automatically; locally run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Add pyright dev dependency and format codebase with ruff (#25)
+b6b5ab269bd770866ee224252f3f3adef29508ce

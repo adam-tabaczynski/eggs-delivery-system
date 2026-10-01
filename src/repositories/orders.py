@@ -30,6 +30,14 @@ class SqlAlchemyOrderRepository(OrderRepository):
         )
         return list(self.session.scalars(stmt).all())
 
+    def list_by_cycle_id(self, cycle_id: int) -> list[Order]:
+        stmt = (
+            select(Order)
+            .where(Order.cycle_id == cycle_id)
+            .order_by(Order.created_at, Order.id)
+        )
+        return list(self.session.scalars(stmt).all())
+
     def get_open_order_for_customer(
         self, *, customer_id: int, cycle_id: int
     ) -> Order | None:

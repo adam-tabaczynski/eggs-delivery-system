@@ -43,7 +43,7 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 | 9 | PATCH order changes exactly one of `quantity` / `status` | Schema (`OrderUpdate`) |
 | 10 | Allocated eggs + new/changed quantity `<= max_eggs` → else 409 `cycle_capacity_exceeded` | `place_order`, `update_order`, both behind the cycle-row lock (#14) |
 | 11 | A Customer can only see / change their own orders; someone else's order → 404 `order_not_found` | `update_order`, `list_orders_for_customer` |
-| 12 | A Provider can only close their own cycles; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle` |
+| 12 | A Provider can only close their own cycles or list their orders; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle`, `list_orders_for_cycle` |
 | 13 | At most one `open` order per Customer per cycle; POST when one exists → 409 `open_order_already_exists` (change quantity with PATCH; the 409 has no order id, find it via `GET /customers/{id}/orders`). Cancelled orders don't count | `place_order`, behind the cycle-row lock (#14); no DB index |
 | 14 | Every order write locks its cycle row (`SELECT ... FOR UPDATE`) before any check, so writes to the same cycle run one at a time; `update_order` re-reads the order (`session.refresh`) after taking the lock, since the session's copy could be stale | `place_order`, `update_order` |
 | 15 | Cycle `cutoff_at` in the future at creation (`cutoff_at > now`), so a new cycle is never already effectively closed → else 422 `cycle_cutoff_not_in_future` | `create_delivery_cycle` (checked after the Provider lookup) |
@@ -60,6 +60,7 @@ Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behavio
 | Provider | `POST /providers/{id}/cycles` | Create cycle (stored `open`) |
 | Provider | `GET /providers/{id}/cycles` | Own cycles, by `delivery_at` |
 | Provider | `PATCH /providers/{id}/cycles/{cycle_id}` | Close only (`status: closed`) |
+| Provider | `GET /providers/{id}/cycles/{cycle_id}/orders` | The cycle's orders (open + cancelled), by `created_at`; any cycle status |
 | Customer | `GET /customers/{id}/cycles` | **All** cycles (open + past), by `delivery_at` |
 | Customer | `POST /customers/{id}/orders` | Place order |
 | Customer | `GET /customers/{id}/orders` | Own orders (open + cancelled), by `created_at` |

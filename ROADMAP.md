@@ -72,7 +72,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] CI: GitHub Actions on PRs and `main` running `ruff check`, `ruff format --check`, `pyright` and `pytest` (PostGIS service container, migrations applied)
 - [x] Rework Git rules in agent guardrails (CLAUDE.md, `/ship` skill): drop long-lived phase branches
 - [x] Reject cycle creation when `cutoff_at` is not in the future
-- [ ] Provider: list orders for a cycle (open + cancelled)
+- [x] Provider: list orders for a cycle (open + cancelled)
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)
 - [ ] Provider: get number of allocated_eggs / max_eggs on delivery cycle
 - [ ] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles

@@ -44,15 +44,13 @@ Before starting a Roadmap item, list the rule questions it raises, settle them, 
 - When a branch's work is done, ask the user before ticking its checkbox.
 
 ## Git
-Solo workflow: short-lived branches, then merge back.
+Solo trunk-based workflow: every branch is short-lived, cut from `main`, and squash-merged back into `main` by the user on GitHub. The PR title becomes the squash commit's subject.
 
 **Commits:** imperative, succinct subject (about 50–72 chars). Body only when needed.
 
 **Branch prefixes:** `feat/` new behavior · `fix/` bug fixes · `docs/` docs only · `chore/` tooling, deps, ignore rules, agent rules · `test/` tests only · `refactor/` no behavior change.
 
-**Phase integration** (e.g. `feat/phase-1-mvp-domain`):
-- Long-lived phase branch off `main`; merge to `main` **without** squash
-- Short-lived feature branches **squash-merge** onto the phase branch
+**Direct commits to `main`:** only for small `docs`/`chore` edits the user explicitly says go straight to `main`. Prefix the subject with the type (`docs: Add …`, `chore: Move …`), then push `origin main`. Branch commits and PR titles stay unprefixed; the branch name carries the type.
 
 **Bulk reformat branches** (whole-project `ruff format`, or `ruff check --fix` sweeps, no behavior change): keep them free of other changes. After the user merges, add the squash commit's full hash to `.git-blame-ignore-revs` on a small `chore/` branch.
 
@@ -62,7 +60,7 @@ Solo workflow: short-lived branches, then merge back.
 
 The report ends with **Follow-ups**: issues noticed but not addressed by the diff (failed or skipped checks, rule gaps, nearby smells, repo hygiene, missing tests), one line each tagged `same branch`, `new branch`, `ROADMAP`, `domain`, or `env`, with where and a suggested action. Write `Follow-ups: none` if nothing came up. Never act on a follow-up without the user's go-ahead.
 
-**Landing a branch:** once confirmed (the user types `/ship`, or says so), push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
+**Landing a branch:** once confirmed (the user types `/ship`, or says so), push to `origin` and open a PR with `gh pr create` against `main`. Never merge locally; the user merges on GitHub.
 - PR title: same style as a commit subject
 - PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `make test` plus manual checks)
 

@@ -1,5 +1,5 @@
 from src.core.interfaces.unit_of_work import UnitOfWork
-from src.exceptions import CustomerNotFound
+from src.exceptions import CustomerNotFound, CycleNotFound, ProviderNotFound
 from src.schemas import OrderRead
 
 
@@ -12,4 +12,20 @@ def list_orders_for_customer(
         if uow.customers.get(customer_id) is None:
             raise CustomerNotFound()
         orders = uow.orders.list_by_customer_id(customer_id)
+        return [OrderRead.model_validate(order) for order in orders]
+
+
+def list_orders_for_cycle(
+    *,
+    provider_id: int,
+    cycle_id: int,
+    uow: UnitOfWork,
+) -> list[OrderRead]:
+    with uow:
+        if uow.providers.get(provider_id) is None:
+            raise ProviderNotFound()
+        cycle = uow.cycles.get(cycle_id)
+        if cycle is None or cycle.provider_id != provider_id:
+            raise CycleNotFound()
+        orders = uow.orders.list_by_cycle_id(cycle_id)
         return [OrderRead.model_validate(order) for order in orders]

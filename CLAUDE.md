@@ -40,7 +40,8 @@ Before starting a Roadmap item, list the rule questions it raises, settle them, 
 
 ## Scope & roadmap
 - `ROADMAP.md` is the checklist; each checkbox is one squashable branch.
-- Work the next open item unless the user asks otherwise. Do not implement later sections ahead of the list or invent unrequested work.
+- Work the next open item unless the user asks otherwise. Do not implement later sections ahead of the list.
+- Suggest new `ROADMAP.md` items or domain rules when the work exposes a gap. Add them once the user agrees.
 - When a branch's work is done, ask the user before ticking its checkbox.
 
 ## Git

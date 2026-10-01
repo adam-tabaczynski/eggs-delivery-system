@@ -20,6 +20,7 @@ class TestUpdateDeliveryCycle:
         assert body["id"] == cycle.id
         assert body["provider_id"] == provider.id
         assert body["status"] == "closed"
+        assert body["allocated_eggs"] == 0
 
     def test_unknown_cycle(self) -> None:
         provider = make_provider()

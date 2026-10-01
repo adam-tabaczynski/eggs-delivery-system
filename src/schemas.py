@@ -77,6 +77,17 @@ class DeliveryCycleRead(BaseModel):
         )
 
 
+class ProviderDeliveryCycleRead(DeliveryCycleRead):
+    allocated_eggs: int
+
+    @classmethod
+    def from_model_with_allocated_eggs(
+        cls, model: DeliveryCycle, *, now: datetime, allocated_eggs: int
+    ) -> Self:
+        cycle = DeliveryCycleRead.from_model(model, now=now)
+        return cls(**cycle.model_dump(), allocated_eggs=allocated_eggs)
+
+
 class OrderCreate(BaseModel):
     cycle_id: int
     quantity: int = Field(ge=1)

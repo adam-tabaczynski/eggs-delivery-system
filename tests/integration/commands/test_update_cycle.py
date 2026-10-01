@@ -5,13 +5,15 @@ from src.core.clock import Clock
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 from src.exceptions import CycleAlreadyClosed, CycleNotFound, ProviderNotFound
 from src.models import DeliveryCycleStatus
-from tests.generators import make_cycle, make_provider
+from tests.generators import make_customer, make_cycle, make_order, make_provider
 
 
 class TestUpdateDeliveryCycle:
     def test_closes_cycle(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
         result = update_delivery_cycle(
             provider_id=provider.id,
@@ -26,6 +28,7 @@ class TestUpdateDeliveryCycle:
         assert result.cutoff_at == cycle.cutoff_at
         assert result.delivery_at == cycle.delivery_at
         assert result.max_eggs == cycle.max_eggs
+        assert result.allocated_eggs == order.quantity
 
     def test_unknown_provider(self) -> None:
         provider = make_provider()

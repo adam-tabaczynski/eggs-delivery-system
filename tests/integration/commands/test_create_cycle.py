@@ -30,6 +30,7 @@ class TestCreateDeliveryCycle:
         assert result.cutoff_at == cutoff_at
         assert result.max_eggs == max_eggs
         assert result.status is DeliveryCycleStatus.OPEN
+        assert result.allocated_eggs == 0
 
     def test_unknown_provider(self) -> None:
         clock = Clock()

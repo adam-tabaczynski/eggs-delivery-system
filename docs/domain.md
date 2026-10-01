@@ -86,7 +86,8 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 ### Provider: update delivery cycle (Roadmap: Auth)
 
 - `cutoff_at` / `delivery_at` / `max_eggs` can be updated only while the cycle is effectively `open`. An update can never reopen a closed cycle.
-- A new `cutoff_at` must be in the future and before `delivery_at`.
+- A new `cutoff_at` must be in the future → 422 `cycle_cutoff_not_in_future` (`CycleCutoffNotInFuture`, the same check as invariant #15, in the command with `Clock`).
+- `cutoff_at < delivery_at` must hold for the cycle after the update, comparing each field in the body against the stored value of the other. The schema can't do this for a partial body, so it lives in the command → 422 (error code to be decided when the item is built).
 - `max_eggs` can't go below the allocated eggs → 409 `cycle_capacity_exceeded`.
 - The update takes the cycle-row lock.
 

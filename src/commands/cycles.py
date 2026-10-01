@@ -2,7 +2,12 @@ from datetime import datetime
 
 from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
-from src.exceptions import CycleAlreadyClosed, CycleNotFound, ProviderNotFound
+from src.exceptions import (
+    CycleAlreadyClosed,
+    CycleCutoffNotInFuture,
+    CycleNotFound,
+    ProviderNotFound,
+)
 from src.models import DeliveryCycle, DeliveryCycleStatus
 from src.schemas import DeliveryCycleRead
 
@@ -20,6 +25,8 @@ def create_delivery_cycle(
     with uow:
         if uow.providers.get(provider_id) is None:
             raise ProviderNotFound()
+        if cutoff_at <= now:
+            raise CycleCutoffNotInFuture()
         cycle = DeliveryCycle(
             provider_id=provider_id,
             delivery_at=delivery_at,

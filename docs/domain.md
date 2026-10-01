@@ -46,6 +46,7 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 | 12 | A Provider can only close their own cycles; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle` |
 | 13 | At most one `open` order per Customer per cycle; POST when one exists → 409 `open_order_already_exists` (change quantity with PATCH; the 409 has no order id, find it via `GET /customers/{id}/orders`). Cancelled orders don't count | `place_order`, behind the cycle-row lock (#14); no DB index |
 | 14 | Every order write locks its cycle row (`SELECT ... FOR UPDATE`) before any check, so writes to the same cycle run one at a time; `update_order` re-reads the order (`session.refresh`) after taking the lock, since the session's copy could be stale | `place_order`, `update_order` |
+| 15 | Cycle `cutoff_at` in the future at creation (`cutoff_at > now`), so a new cycle is never already effectively closed → else 422 `cycle_cutoff_not_in_future` | `create_delivery_cycle` (checked after the Provider lookup) |
 
 "Schema only" means the rule is checked at the HTTP boundary but not in the DB.
 
@@ -100,7 +101,6 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 
 - **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
-- **Cycle creation in the past**: `cutoff_at` can be earlier than now, which creates a cycle that is already effectively closed. **Decided, to implement** (Roadmap): reject creation unless `cutoff_at` is in the future, matching the planned rule for cycle updates.
 - **Email case**: `A@x.com` and `a@x.com` count as different customers. Normalise? (Probably with `EmailStr` in Auth.)
 - **Customer cycle list**: returns every cycle, including closed and past ones. Filtering comes later (Roadmap).
 

@@ -6,6 +6,7 @@ from src.core.exceptions import (
     DomainError,
     NotFoundError,
     OperationalError,
+    UnprocessableError,
 )
 
 
@@ -26,6 +27,8 @@ def http_status_for_domain(exc: DomainError) -> int:
         return 404
     if isinstance(exc, ConflictError):
         return 409
+    if isinstance(exc, UnprocessableError):
+        return 422
     return 400
 
 

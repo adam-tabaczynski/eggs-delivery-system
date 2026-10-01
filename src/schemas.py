@@ -26,7 +26,7 @@ class CustomerRead(BaseModel):
 class DeliveryCycleCreate(BaseModel):
     delivery_at: datetime
     cutoff_at: datetime
-    max_eggs: int = Field(ge=1)
+    max_eggs: int = Field(ge=1, le=10_000)
 
     @field_validator("delivery_at", "cutoff_at")
     @classmethod

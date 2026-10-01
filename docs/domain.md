@@ -61,12 +61,12 @@ Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behavio
 | Provider | `GET /providers/{id}/cycles` | Own cycles, by `delivery_at`, each with `allocated_eggs` |
 | Provider | `PATCH /providers/{id}/cycles/{cycle_id}` | Close only (`status: closed`); response includes `allocated_eggs` |
 | Provider | `GET /providers/{id}/cycles/{cycle_id}/orders` | The cycle's orders (open + cancelled), by `created_at`; any cycle status; optional `?status=` filter |
-| Customer | `GET /customers/{id}/cycles` | **All** cycles (open + past), by `delivery_at`; no `allocated_eggs` yet (Roadmap) |
+| Customer | `GET /customers/{id}/cycles` | **All** cycles (open + past), by `delivery_at`, each with `allocated_eggs` |
 | Customer | `POST /customers/{id}/orders` | Place order |
 | Customer | `GET /customers/{id}/orders` | Own orders (open + cancelled), by `created_at`; optional `?status=` filter |
 | Customer | `PATCH /customers/{id}/orders/{order_id}` | Change quantity **or** cancel |
 
-**Allocated eggs on cycles**: only the Provider's cycle responses (create, list, close) carry `allocated_eggs` (`ProviderDeliveryCycleRead`). The client works out remaining capacity as `max_eggs - allocated_eggs`; there is no `remaining_eggs` field. The read takes no lock: it reflects the last committed order write.
+**Allocated eggs on cycles**: every cycle response carries `allocated_eggs` (`DeliveryCycleRead`): the Provider's create, list and close, and the Customer's cycle list. Customers see the same total as the Provider, for every cycle status (a closed cycle shows its frozen total). The client works out remaining capacity as `max_eggs - allocated_eggs`; there is no `remaining_eggs` field. The read takes no lock: it reflects the last committed order write. The Customer's cycle list doesn't show the Customer's own order (quantity or id) per cycle; they find it via `GET /customers/{id}/orders` (Roadmap: Auth).
 
 **Order list filter** (both order lists): optional `status` query param, one value, `open` or `cancelled`. Omitted → all orders. Any other value → 422 `request_validation`. The filter uses the order's stored status only; it doesn't look at the cycle's status.
 
@@ -109,7 +109,6 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 - **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
 - **Email case**: `A@x.com` and `a@x.com` count as different customers. Normalise? (Probably with `EmailStr` in Auth.)
-- **Customer capacity view**: Customers will see `allocated_eggs` / `max_eggs` on their cycle list (Roadmap, next Orders item); today they only learn a cycle is full from 409 `cycle_capacity_exceeded`. To settle when that item starts: absolute total vs remaining only, and what closed / cancelled cycles show.
 - **Customer cycle list**: returns every cycle, including closed and past ones. Filtering comes later (Roadmap).
 
 ## Future extensions

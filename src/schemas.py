@@ -59,33 +59,31 @@ class DeliveryCycleUpdate(PatchModel):
 
 
 class DeliveryCycleRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     provider_id: int
     delivery_at: datetime
     cutoff_at: datetime
     max_eggs: int
     status: DeliveryCycleStatus
+    allocated_eggs: int
     created_at: datetime
     updated_at: datetime
 
     @classmethod
-    def from_model(cls, model: DeliveryCycle, *, now: datetime) -> Self:
-        return cls.model_validate(model).model_copy(
-            update={"status": model.effective_status(now)}
-        )
-
-
-class ProviderDeliveryCycleRead(DeliveryCycleRead):
-    allocated_eggs: int
-
-    @classmethod
-    def from_model_with_allocated_eggs(
+    def from_model(
         cls, model: DeliveryCycle, *, now: datetime, allocated_eggs: int
     ) -> Self:
-        cycle = DeliveryCycleRead.from_model(model, now=now)
-        return cls(**cycle.model_dump(), allocated_eggs=allocated_eggs)
+        return cls(
+            id=model.id,
+            provider_id=model.provider_id,
+            delivery_at=model.delivery_at,
+            cutoff_at=model.cutoff_at,
+            max_eggs=model.max_eggs,
+            status=model.effective_status(now),
+            allocated_eggs=allocated_eggs,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
 
 
 class OrderCreate(BaseModel):

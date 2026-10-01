@@ -9,7 +9,7 @@ from src.exceptions import (
     ProviderNotFound,
 )
 from src.models import DeliveryCycle, DeliveryCycleStatus
-from src.schemas import DeliveryCycleRead
+from src.schemas import ProviderDeliveryCycleRead
 
 
 def create_delivery_cycle(
@@ -20,7 +20,7 @@ def create_delivery_cycle(
     max_eggs: int,
     uow: UnitOfWork,
     clock: Clock,
-) -> DeliveryCycleRead:
+) -> ProviderDeliveryCycleRead:
     now = clock.datetime_now()
     with uow:
         if uow.providers.get(provider_id) is None:
@@ -36,7 +36,9 @@ def create_delivery_cycle(
         )
         uow.cycles.add(cycle)
         uow.commit()
-        return DeliveryCycleRead.from_model(cycle, now=now)
+        return ProviderDeliveryCycleRead.from_model_with_allocated_eggs(
+            cycle, now=now, allocated_eggs=0
+        )
 
 
 def update_delivery_cycle(
@@ -45,7 +47,7 @@ def update_delivery_cycle(
     cycle_id: int,
     uow: UnitOfWork,
     clock: Clock,
-) -> DeliveryCycleRead:
+) -> ProviderDeliveryCycleRead:
     now = clock.datetime_now()
     with uow:
         if uow.providers.get(provider_id) is None:
@@ -57,4 +59,6 @@ def update_delivery_cycle(
             raise CycleAlreadyClosed()
         cycle.status = DeliveryCycleStatus.CLOSED
         uow.commit()
-        return DeliveryCycleRead.from_model(cycle, now=now)
+        return ProviderDeliveryCycleRead.from_model_with_allocated_eggs(
+            cycle, now=now, allocated_eggs=uow.cycles.get_allocated_eggs(cycle.id)
+        )

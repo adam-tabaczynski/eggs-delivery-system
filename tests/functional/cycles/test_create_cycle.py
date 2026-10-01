@@ -25,6 +25,7 @@ class TestCreateDeliveryCycle:
         assert body["provider_id"] == provider.id
         assert body["max_eggs"] == 48
         assert body["status"] == "open"
+        assert body["allocated_eggs"] == 0
         assert isinstance(body["id"], int)
         assert "created_at" in body
         assert "updated_at" in body

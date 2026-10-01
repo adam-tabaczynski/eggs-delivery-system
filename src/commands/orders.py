@@ -35,7 +35,7 @@ def place_order(
         if open_order is not None:
             raise OpenOrderAlreadyExists()
         cycle.ensure_capacity(
-            committed=uow.orders.sum_open_quantity(cycle_id),
+            committed=uow.cycles.get_allocated_eggs(cycle_id),
             additional=quantity,
         )
         order = Order(
@@ -77,7 +77,7 @@ def update_order(
             raise OrderAlreadyCancelled()
         if quantity is not None:
             cycle.ensure_capacity(
-                committed=uow.orders.sum_open_quantity(
+                committed=uow.cycles.get_allocated_eggs(
                     order.cycle_id, exclude_order_id=order.id
                 ),
                 additional=quantity,

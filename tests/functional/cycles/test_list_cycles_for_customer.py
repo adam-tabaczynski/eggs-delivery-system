@@ -17,6 +17,7 @@ class TestListCyclesForCustomer:
         by_id = {listed["id"]: listed for listed in response.json()}
         assert by_id[cycle.id]["status"] == "open"
         assert by_id[cycle.id]["max_eggs"] == cycle.max_eggs
+        assert "allocated_eggs" not in by_id[cycle.id]
 
     def test_unknown_customer(self) -> None:
         response = client.get("/customers/0/cycles")

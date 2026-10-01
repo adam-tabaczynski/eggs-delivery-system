@@ -22,10 +22,6 @@ class OrderRepository(Protocol):
         self, *, customer_id: int, cycle_id: int
     ) -> Order | None: ...
 
-    def sum_open_quantity(
-        self, cycle_id: int, *, exclude_order_id: int | None = None
-    ) -> int: ...
-
     def update(
         self,
         order: Order,

@@ -5,7 +5,12 @@ from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.dependencies import get_clock, get_uow
 from src.queries.cycles import list_cycles_for_customer, list_cycles_for_provider
-from src.schemas import DeliveryCycleCreate, DeliveryCycleRead, DeliveryCycleUpdate
+from src.schemas import (
+    DeliveryCycleCreate,
+    DeliveryCycleRead,
+    DeliveryCycleUpdate,
+    ProviderDeliveryCycleRead,
+)
 
 router = APIRouter()
 
@@ -19,7 +24,7 @@ def create_cycle(
     body: DeliveryCycleCreate,
     uow: UnitOfWork = Depends(get_uow),
     clock: Clock = Depends(get_clock),
-) -> DeliveryCycleRead:
+) -> ProviderDeliveryCycleRead:
     return create_delivery_cycle(
         provider_id=provider_id,
         delivery_at=body.delivery_at,
@@ -35,7 +40,7 @@ def list_cycles(
     provider_id: int,
     uow: UnitOfWork = Depends(get_uow),
     clock: Clock = Depends(get_clock),
-) -> list[DeliveryCycleRead]:
+) -> list[ProviderDeliveryCycleRead]:
     return list_cycles_for_provider(provider_id=provider_id, uow=uow, clock=clock)
 
 
@@ -55,7 +60,7 @@ def update_cycle(
     body: DeliveryCycleUpdate,
     uow: UnitOfWork = Depends(get_uow),
     clock: Clock = Depends(get_clock),
-) -> DeliveryCycleRead:
+) -> ProviderDeliveryCycleRead:
     return update_delivery_cycle(
         provider_id=provider_id,
         cycle_id=cycle_id,

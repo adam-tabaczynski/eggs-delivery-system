@@ -1,8 +1,13 @@
-from sqlalchemy import select
+from typing import Any
+
+from sqlalchemy import ScalarSelect, func, select
 from sqlalchemy.orm import Session
 
-from src.core.interfaces.cycle_repository import DeliveryCycleRepository
-from src.models import DeliveryCycle
+from src.core.interfaces.cycle_repository import (
+    CycleWithAllocatedEggs,
+    DeliveryCycleRepository,
+)
+from src.models import DeliveryCycle, Order, OrderStatus
 
 
 class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
@@ -24,16 +29,44 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
         )
         return self.session.scalars(stmt).first()
 
+    def get_allocated_eggs(
+        self, cycle_id: int, *, exclude_order_id: int | None = None
+    ) -> int:
+        stmt = select(self._allocated_eggs(exclude_order_id=exclude_order_id)).where(
+            DeliveryCycle.id == cycle_id
+        )
+        return self.session.scalars(stmt).one()
+
     def list_all(self) -> list[DeliveryCycle]:
         stmt = select(DeliveryCycle).order_by(
             DeliveryCycle.delivery_at, DeliveryCycle.id
         )
         return list(self.session.scalars(stmt).all())
 
-    def list_by_provider_id(self, provider_id: int) -> list[DeliveryCycle]:
+    def list_with_allocated_eggs_by_provider_id(
+        self, provider_id: int
+    ) -> list[CycleWithAllocatedEggs]:
         stmt = (
-            select(DeliveryCycle)
+            select(DeliveryCycle, self._allocated_eggs())
             .where(DeliveryCycle.provider_id == provider_id)
             .order_by(DeliveryCycle.delivery_at, DeliveryCycle.id)
         )
-        return list(self.session.scalars(stmt).all())
+        return [
+            CycleWithAllocatedEggs(cycle=cycle, allocated_eggs=allocated_eggs)
+            for cycle, allocated_eggs in self.session.execute(stmt)
+        ]
+
+    @staticmethod
+    def _allocated_eggs(*, exclude_order_id: int | None = None) -> ScalarSelect[Any]:
+        """Sum of `open` orders' quantity, correlated to the outer query's cycle."""
+        stmt = (
+            select(func.coalesce(func.sum(Order.quantity), 0))
+            .where(
+                Order.cycle_id == DeliveryCycle.id,
+                Order.status == OrderStatus.OPEN,
+            )
+            .correlate(DeliveryCycle)
+        )
+        if exclude_order_id is not None:
+            stmt = stmt.where(Order.id != exclude_order_id)
+        return stmt.scalar_subquery()

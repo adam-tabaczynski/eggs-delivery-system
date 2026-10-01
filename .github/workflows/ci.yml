@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pyright
+
+  test:
+    runs-on: ubuntu-latest
+    # Same values as pyproject's pytest-env, so alembic and pytest hit the same db.
+    env:
+      POSTGRES_USER: eggs
+      POSTGRES_PASSWORD: eggs
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5433
+      POSTGRES_DB: doorstep_eggs_test
+    services:
+      db_test:
+        # Keep in sync with docker/compose.db-test.yml.
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: eggs
+          POSTGRES_PASSWORD: eggs
+          POSTGRES_DB: doorstep_eggs_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U eggs -d doorstep_eggs_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run alembic upgrade head
+      - run: uv run pytest

@@ -67,3 +67,33 @@ class TestDeliveryCycleRepository:
             by_id = {row.cycle.id: row.allocated_eggs for row in rows}
 
         assert by_id == {cycle.id: 4, empty_cycle.id: 0}
+
+    def test_list_all_with_allocated_eggs(self) -> None:
+        provider = make_provider()
+        other_provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        other_provider_cycle = make_cycle(provider_id=other_provider.id)
+        customer = make_customer()
+        make_order(
+            cycle_id=cycle.id,
+            customer_id=customer.id,
+            quantity=4,
+            status=OrderStatus.OPEN,
+        )
+        make_order(
+            cycle_id=cycle.id,
+            customer_id=customer.id,
+            quantity=6,
+            status=OrderStatus.CANCELLED,
+        )
+
+        with SqlAlchemyUnitOfWork() as uow:
+            rows = uow.cycles.list_all_with_allocated_eggs()
+            created = {cycle.id, other_provider_cycle.id}
+            by_id = {
+                row.cycle.id: row.allocated_eggs
+                for row in rows
+                if row.cycle.id in created
+            }
+
+        assert by_id == {cycle.id: 4, other_provider_cycle.id: 0}

@@ -9,7 +9,6 @@ from src.schemas import (
     DeliveryCycleCreate,
     DeliveryCycleRead,
     DeliveryCycleUpdate,
-    ProviderDeliveryCycleRead,
 )
 
 router = APIRouter()
@@ -24,7 +23,7 @@ def create_cycle(
     body: DeliveryCycleCreate,
     uow: UnitOfWork = Depends(get_uow),
     clock: Clock = Depends(get_clock),
-) -> ProviderDeliveryCycleRead:
+) -> DeliveryCycleRead:
     return create_delivery_cycle(
         provider_id=provider_id,
         delivery_at=body.delivery_at,
@@ -40,7 +39,7 @@ def list_cycles(
     provider_id: int,
     uow: UnitOfWork = Depends(get_uow),
     clock: Clock = Depends(get_clock),
-) -> list[ProviderDeliveryCycleRead]:
+) -> list[DeliveryCycleRead]:
     return list_cycles_for_provider(provider_id=provider_id, uow=uow, clock=clock)
 
 
@@ -60,7 +59,7 @@ def update_cycle(
     body: DeliveryCycleUpdate,
     uow: UnitOfWork = Depends(get_uow),
     clock: Clock = Depends(get_clock),
-) -> ProviderDeliveryCycleRead:
+) -> DeliveryCycleRead:
     return update_delivery_cycle(
         provider_id=provider_id,
         cycle_id=cycle_id,

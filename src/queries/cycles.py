@@ -1,7 +1,7 @@
 from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.exceptions import CustomerNotFound, ProviderNotFound
-from src.schemas import DeliveryCycleRead, ProviderDeliveryCycleRead
+from src.schemas import DeliveryCycleRead
 
 
 def list_cycles_for_provider(
@@ -9,7 +9,7 @@ def list_cycles_for_provider(
     provider_id: int,
     uow: UnitOfWork,
     clock: Clock,
-) -> list[ProviderDeliveryCycleRead]:
+) -> list[DeliveryCycleRead]:
     now = clock.datetime_now()
     with uow:
         if uow.providers.get(provider_id) is None:
@@ -18,7 +18,7 @@ def list_cycles_for_provider(
             provider_id
         )
         return [
-            ProviderDeliveryCycleRead.from_model_with_allocated_eggs(
+            DeliveryCycleRead.from_model(
                 row.cycle, now=now, allocated_eggs=row.allocated_eggs
             )
             for row in cycles_with_allocated_eggs
@@ -35,5 +35,10 @@ def list_cycles_for_customer(
     with uow:
         if uow.customers.get(customer_id) is None:
             raise CustomerNotFound()
-        cycles = uow.cycles.list_all()
-        return [DeliveryCycleRead.from_model(cycle, now=now) for cycle in cycles]
+        cycles_with_allocated_eggs = uow.cycles.list_all_with_allocated_eggs()
+        return [
+            DeliveryCycleRead.from_model(
+                row.cycle, now=now, allocated_eggs=row.allocated_eggs
+            )
+            for row in cycles_with_allocated_eggs
+        ]

@@ -75,7 +75,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Provider: list orders for a cycle (open + cancelled)
 - [x] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)
 - [x] Provider: get number of allocated_eggs / max_eggs on delivery cycle
-- [ ] Customer: see allocated_eggs / max_eggs on cycle list
+- [x] Customer: see allocated_eggs / max_eggs on cycle list
 - [ ] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
 - [ ] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
 - [ ] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
@@ -88,6 +88,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [ ] Email + password auth for Provider and Customer
 - [ ] Pydantic `EmailStr` (+ `email-validator`) on auth and identity payloads
 - [ ] `current_provider` / `current_customer` dependencies (stop passing ids for authz)
+- [ ] Customer: see own open order (quantity + id) per cycle on cycle list
 - [ ] Provider: update delivery cycle
 
 

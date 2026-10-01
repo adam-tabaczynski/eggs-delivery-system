@@ -37,11 +37,14 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
         )
         return self.session.scalars(stmt).one()
 
-    def list_all(self) -> list[DeliveryCycle]:
-        stmt = select(DeliveryCycle).order_by(
+    def list_all_with_allocated_eggs(self) -> list[CycleWithAllocatedEggs]:
+        stmt = select(DeliveryCycle, self._allocated_eggs()).order_by(
             DeliveryCycle.delivery_at, DeliveryCycle.id
         )
-        return list(self.session.scalars(stmt).all())
+        return [
+            CycleWithAllocatedEggs(cycle=cycle, allocated_eggs=allocated_eggs)
+            for cycle, allocated_eggs in self.session.execute(stmt)
+        ]
 
     def list_with_allocated_eggs_by_provider_id(
         self, provider_id: int

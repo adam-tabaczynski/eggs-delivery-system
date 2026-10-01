@@ -60,11 +60,13 @@ Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behavio
 | Provider | `POST /providers/{id}/cycles` | Create cycle (stored `open`) |
 | Provider | `GET /providers/{id}/cycles` | Own cycles, by `delivery_at` |
 | Provider | `PATCH /providers/{id}/cycles/{cycle_id}` | Close only (`status: closed`) |
-| Provider | `GET /providers/{id}/cycles/{cycle_id}/orders` | The cycle's orders (open + cancelled), by `created_at`; any cycle status |
+| Provider | `GET /providers/{id}/cycles/{cycle_id}/orders` | The cycle's orders (open + cancelled), by `created_at`; any cycle status; optional `?status=` filter |
 | Customer | `GET /customers/{id}/cycles` | **All** cycles (open + past), by `delivery_at` |
 | Customer | `POST /customers/{id}/orders` | Place order |
-| Customer | `GET /customers/{id}/orders` | Own orders (open + cancelled), by `created_at` |
+| Customer | `GET /customers/{id}/orders` | Own orders (open + cancelled), by `created_at`; optional `?status=` filter |
 | Customer | `PATCH /customers/{id}/orders/{order_id}` | Change quantity **or** cancel |
+
+**Order list filter** (both order lists): optional `status` query param, one value, `open` or `cancelled`. Omitted → all orders. Any other value → 422 `request_validation`. The filter uses the order's stored status only; it doesn't look at the cycle's status.
 
 ## Planned rules
 

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from src.commands.orders import place_order, update_order
 from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.dependencies import get_clock, get_uow
+from src.models import OrderStatus
 from src.queries.orders import list_orders_for_customer, list_orders_for_cycle
 from src.schemas import OrderCreate, OrderRead, OrderUpdate
 
@@ -32,18 +33,24 @@ def create_order(
 @router.get("/customers/{customer_id}/orders")
 def list_customer_orders(
     customer_id: int,
+    order_status: OrderStatus | None = Query(default=None, alias="status"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> list[OrderRead]:
-    return list_orders_for_customer(customer_id=customer_id, uow=uow)
+    return list_orders_for_customer(
+        customer_id=customer_id, status=order_status, uow=uow
+    )
 
 
 @router.get("/providers/{provider_id}/cycles/{cycle_id}/orders")
 def list_cycle_orders(
     provider_id: int,
     cycle_id: int,
+    order_status: OrderStatus | None = Query(default=None, alias="status"),
     uow: UnitOfWork = Depends(get_uow),
 ) -> list[OrderRead]:
-    return list_orders_for_cycle(provider_id=provider_id, cycle_id=cycle_id, uow=uow)
+    return list_orders_for_cycle(
+        provider_id=provider_id, cycle_id=cycle_id, status=order_status, uow=uow
+    )
 
 
 @router.patch("/customers/{customer_id}/orders/{order_id}")

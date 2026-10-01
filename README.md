@@ -28,8 +28,8 @@ docker compose up --build
 `db` publishes 5432, `db_test` publishes 5433. Schema and seed are not applied on container start. After Postgres is up, apply migrations when you choose, then seed one Provider (`provider@doorstep-eggs.local`) on the **local** database. There is no provider registration API. Do not seed `db_test`.
 
 ```bash
-uv run alembic upgrade head
-docker compose exec -T db psql -U eggs -d doorstep_eggs -v ON_ERROR_STOP=1 -f - < docker/seed.sql
+make migrate-local
+make seed
 ```
 
 The insert is idempotent (`ON CONFLICT (email) DO NOTHING`). User and database names match `.env.example`.
@@ -55,9 +55,9 @@ uv run uvicorn src.main:app --reload
 
 ## Tests
 
-Integration and functional tests use the `db_test` Compose service (host port 5433, database `doorstep_eggs_test` from `docker/db-test.env`). pytest-env in `pyproject.toml` supplies the same five `POSTGRES_*` names for the test process. After a fresh `db_test` volume, or after a new Alembic revision, migrate the test database (user/password/host still come from `.env`):
+Integration and functional tests use the `db_test` Compose service (host port 5433, database `doorstep_eggs_test` from `docker/db-test.env`). pytest-env in `pyproject.toml` supplies the same five `POSTGRES_*` names for the test process. After a fresh `db_test` volume, or after a new Alembic revision, migrate the test database (`make migrate-test` reads user/password/database from `docker/db-test.env` and sets host + port itself; `.env` is not used):
 
 ```bash
-POSTGRES_PORT=5433 POSTGRES_DB=doorstep_eggs_test uv run alembic upgrade head
-uv run pytest
+make migrate-test
+make test
 ```

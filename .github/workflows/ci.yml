@@ -21,22 +21,14 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run pyright
+      - run: make check
 
   test:
     runs-on: ubuntu-latest
-    # Same values as pyproject's pytest-env, so alembic and pytest hit the same db.
-    env:
-      POSTGRES_USER: eggs
-      POSTGRES_PASSWORD: eggs
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5433
-      POSTGRES_DB: doorstep_eggs_test
     services:
       db_test:
-        # Keep in sync with docker/compose.db-test.yml.
+        # Keep in sync with docker/compose.db-test.yml and docker/db-test.env
+        # (make migrate-test reads the latter; pytest uses pyproject's pytest-env).
         image: postgis/postgis:16-3.4
         env:
           POSTGRES_USER: eggs
@@ -55,5 +47,5 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run alembic upgrade head
-      - run: uv run pytest
+      - run: make migrate-test
+      - run: make test

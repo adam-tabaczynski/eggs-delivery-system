@@ -12,15 +12,17 @@ Stick to this stack. Do not add dependencies or change paradigms (e.g. async) un
 ## Commands
 ```bash
 docker compose up --build                  # api + db (5432) + db_test (5433)
-uv run alembic upgrade head                # migrate local db
-POSTGRES_PORT=5433 POSTGRES_DB=doorstep_eggs_test uv run alembic upgrade head  # migrate db_test (after new revision / fresh volume)
-uv run pytest                              # pytest-env points at db_test
+make migrate-local                         # migrate local db; creds from docker/db.env
+make seed                                  # seed one Provider into local db (idempotent; never db_test)
+make migrate-test                          # migrate db_test (after new revision / fresh volume); creds from docker/db-test.env
+make test                                  # pytest (pytest-env points at db_test); subset: make test ARGS="tests/unit -k order"
+make lint                                  # ruff check --fix + ruff format; also pre-commit hooks: if they rewrite files, re-stage and commit again
+make typecheck                             # pyright; also a pre-commit hook (blocks the commit on errors)
+make check                                 # read-only ruff check + format --check + pyright, same as CI
 make psql                                  # psql into local db
-uv run ruff check --fix . && uv run ruff format .  # also run as pre-commit hooks; if they rewrite files, re-stage and commit again
-uv run pyright                             # type check; also a pre-commit hook (blocks the commit on errors)
 ```
 
-**Worktrees:** never run `docker compose` from a worktree. Containers are shared: one `db` (5432) and one `db_test` (5433), started by the user from the main checkout. If `db_test` is unreachable, ask the user to start it instead of spawning another. One session runs `uv run pytest` at a time (tests truncate tables).
+**Worktrees:** never run `docker compose` from a worktree. Containers are shared: one `db` (5432) and one `db_test` (5433), started by the user from the main checkout. If `db_test` is unreachable, ask the user to start it instead of spawning another. One session runs `make test` at a time (tests truncate tables).
 
 ## Architecture
 Multilayer under `src/`, by concern (not by domain). Layer ownership rules are in `.claude/rules/src-layers.md`; test conventions are in `.claude/rules/tests.md`.
@@ -30,7 +32,7 @@ Multilayer under `src/`, by concern (not by domain). Layer ownership rules are i
 - Settings builds the SQLAlchemy URL from `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`. There is no `DATABASE_URL`.
 - Test env defaults live in `pyproject.toml` `[tool.pytest.ini_options].env`, not in conftest or tests.
 - Do not commit `.env`. Keep `.env.example` in sync when keys change.
-- Never seed `db_test`. Only the local `db` gets `docker/seed.sql`.
+- Never seed `db_test`. Only the local `db` gets `docker/seed.sql` (`make seed`).
 
 ## Domain
 Rules, glossary and open questions live in `docs/domain.md`; it is the source of truth.
@@ -62,7 +64,7 @@ The report ends with **Follow-ups**: issues noticed but not addressed by the dif
 
 **Landing a branch:** once confirmed (the user types `/ship`, or says so), push to `origin` and open a PR with `gh pr create` against `main` (or the phase branch when one is active). Never merge locally; the user merges on GitHub.
 - PR title: same style as a commit subject
-- PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `uv run pytest` plus manual checks)
+- PR body: `## Summary` (bullets on behavior/why) and `## Test plan` (checkboxes: `make test` plus manual checks)
 
 ## Agent skills
 

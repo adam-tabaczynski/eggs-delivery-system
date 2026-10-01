@@ -19,7 +19,7 @@ Invoking `/ship` is the user's confirmation under CLAUDE.md **Review before comm
 3. **Push.** `git push -u origin <branch>`.
 4. **Open the PR** with `gh pr create` against `main`, or the active phase branch.
    - Title: the commit subject.
-   - Body: `## Summary` (bullets on behavior and why) and `## Test plan`. Tick only the checks that actually ran in this session, with their results (`uv run pytest` (96 passed)); leave the rest unticked for the user.
+   - Body: `## Summary` (bullets on behavior and why) and `## Test plan`. Tick only the checks that actually ran in this session, with their results (`make test` (96 passed)); leave the rest unticked for the user.
    - End the body with the PR attribution line from the current system reminder.
 5. **Update memory** when the branch completes or changes a pending item there.
 6. **Report**: PR URL, commit hash, and any step the user runs after merging (pull, `uv sync`, one-time config). Done when the PR URL is printed.

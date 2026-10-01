@@ -69,7 +69,8 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Lock cycle row (`SELECT ... FOR UPDATE`) on order writes: FCFS + one-open-order safe under concurrency
 - [x] ADR in `docs/adr/`: cycle-row lock and rejected concurrency alternatives (moved out of `docs/domain.md` open questions)
 - [x] Extract `run_concurrently` test helper (barrier/thread/lock/join boilerplate shared by the concurrency tests) to `tests/helpers.py`
-- [ ] CI: GitHub Actions on PRs and `main` running `ruff check`, `ruff format --check`, `pyright` and `pytest` (PostGIS service container, migrations applied)
+- [x] CI: GitHub Actions on PRs and `main` running `ruff check`, `ruff format --check`, `pyright` and `pytest` (PostGIS service container, migrations applied)
+- [ ] Rework Git rules in agent guardrails (CLAUDE.md, `/ship` skill): drop long-lived phase branches
 - [ ] Reject cycle creation when `cutoff_at` is not in the future
 - [ ] Provider: list orders for a cycle (open + cancelled)
 - [ ] Add filtering of open / cancelled orders for Customer (own) and Provider (for a cycle)
@@ -77,6 +78,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [ ] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
 - [ ] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
 - [ ] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
+- [ ] Refactor: class-based commands and queries
 
 
 

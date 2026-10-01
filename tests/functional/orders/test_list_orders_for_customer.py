@@ -29,6 +29,25 @@ class TestListOrdersForCustomer:
         assert by_id[cancelled.id]["status"] == "cancelled"
         assert by_id[cancelled.id]["quantity"] == 6
 
+    def test_filters_by_status(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=customer.id, status=OrderStatus.OPEN)
+        cancelled = make_order(
+            cycle_id=cycle.id,
+            customer_id=customer.id,
+            status=OrderStatus.CANCELLED,
+        )
+
+        response = client.get(
+            f"/customers/{customer.id}/orders", params={"status": "cancelled"}
+        )
+        assert response.status_code == 200
+        assert [(listed["id"], listed["status"]) for listed in response.json()] == [
+            (cancelled.id, "cancelled")
+        ]
+
     def test_unknown_customer(self) -> None:
         response = client.get("/customers/0/orders")
         assert response.status_code == 404

@@ -22,20 +22,28 @@ class SqlAlchemyOrderRepository(OrderRepository):
         self.session.refresh(order)
         return order
 
-    def list_by_customer_id(self, customer_id: int) -> list[Order]:
+    def list_by_customer_id(
+        self, customer_id: int, *, status: OrderStatus | None = None
+    ) -> list[Order]:
         stmt = (
             select(Order)
             .where(Order.customer_id == customer_id)
             .order_by(Order.created_at, Order.id)
         )
+        if status is not None:
+            stmt = stmt.where(Order.status == status)
         return list(self.session.scalars(stmt).all())
 
-    def list_by_cycle_id(self, cycle_id: int) -> list[Order]:
+    def list_by_cycle_id(
+        self, cycle_id: int, *, status: OrderStatus | None = None
+    ) -> list[Order]:
         stmt = (
             select(Order)
             .where(Order.cycle_id == cycle_id)
             .order_by(Order.created_at, Order.id)
         )
+        if status is not None:
+            stmt = stmt.where(Order.status == status)
         return list(self.session.scalars(stmt).all())
 
     def get_open_order_for_customer(

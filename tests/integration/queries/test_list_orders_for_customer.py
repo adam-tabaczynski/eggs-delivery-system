@@ -32,6 +32,31 @@ class TestListOrdersForCustomer:
         assert by_id[cancelled.id].status is OrderStatus.CANCELLED
         assert by_id[cancelled.id].quantity == cancelled.quantity
 
+    @pytest.mark.parametrize("status", list(OrderStatus))
+    def test_filters_by_status(self, status: OrderStatus) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+        other_cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        orders = {
+            OrderStatus.OPEN: make_order(
+                cycle_id=cycle.id, customer_id=customer.id, status=OrderStatus.OPEN
+            ),
+            OrderStatus.CANCELLED: make_order(
+                cycle_id=other_cycle.id,
+                customer_id=customer.id,
+                status=OrderStatus.CANCELLED,
+            ),
+        }
+
+        result = list_orders_for_customer(
+            customer_id=customer.id, status=status, uow=SqlAlchemyUnitOfWork()
+        )
+
+        assert [(order.id, order.status) for order in result] == [
+            (orders[status].id, status)
+        ]
+
     def test_isolates_customers(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)

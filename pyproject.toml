@@ -43,8 +43,8 @@ reportUnknownArgumentType = false
 reportUnknownMemberType = false
 
 [tool.ruff.lint.flake8-bugbear]
-# FastAPI dependency markers are meant to live in argument defaults.
-extend-immutable-calls = ["fastapi.Depends"]
+# FastAPI dependency and parameter markers are meant to live in argument defaults.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
 
 [tool.ruff.lint.isort]
 # The local alembic/ migrations folder makes ruff treat the library as first-party.

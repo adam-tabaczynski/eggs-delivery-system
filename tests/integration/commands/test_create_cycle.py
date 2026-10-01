@@ -3,7 +3,7 @@ import pytest
 from src.commands.cycles import create_delivery_cycle
 from src.core.clock import Clock
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
-from src.exceptions import ProviderNotFound
+from src.exceptions import CycleCutoffNotInFuture, ProviderNotFound
 from src.models import DeliveryCycleStatus
 from tests.generators import make_provider
 
@@ -39,6 +39,20 @@ class TestCreateDeliveryCycle:
                 provider_id=0,
                 delivery_at=clock.move_datetime_forward(days=7),
                 cutoff_at=clock.move_datetime_forward(days=5),
+                max_eggs=48,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=clock,
+            )
+
+    def test_rejects_cutoff_in_past(self) -> None:
+        clock = Clock()
+        provider = make_provider()
+
+        with pytest.raises(CycleCutoffNotInFuture):
+            create_delivery_cycle(
+                provider_id=provider.id,
+                delivery_at=clock.move_datetime_forward(days=1),
+                cutoff_at=clock.move_datetime_backward(hours=1),
                 max_eggs=48,
                 uow=SqlAlchemyUnitOfWork(),
                 clock=clock,

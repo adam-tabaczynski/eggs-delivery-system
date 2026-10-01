@@ -1,6 +1,6 @@
 """Concrete business-rule errors."""
 
-from src.core.exceptions import ConflictError, NotFoundError
+from src.core.exceptions import ConflictError, NotFoundError, UnprocessableError
 
 
 class EmailAlreadyRegistered(ConflictError):
@@ -35,6 +35,13 @@ class CycleAlreadyClosed(ConflictError):
     code = "cycle_already_closed"
 
     def __init__(self, message: str = "Cycle is already closed") -> None:
+        super().__init__(message)
+
+
+class CycleCutoffNotInFuture(UnprocessableError):
+    code = "cycle_cutoff_not_in_future"
+
+    def __init__(self, message: str = "Cycle cutoff_at must be in the future") -> None:
         super().__init__(message)
 
 

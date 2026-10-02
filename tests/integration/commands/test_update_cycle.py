@@ -6,6 +6,7 @@ from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 from src.exceptions import CycleAlreadyClosed, CycleNotFound, ProviderNotFound
 from src.models import DeliveryCycleStatus
 from tests.generators import make_customer, make_cycle, make_order, make_provider
+from tests.helpers import run_concurrently
 
 
 class TestUpdateDeliveryCycle:
@@ -94,3 +95,20 @@ class TestUpdateDeliveryCycle:
                 uow=SqlAlchemyUnitOfWork(),
                 clock=clock,
             )
+
+    def test_concurrent_close_second_gets_conflict(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+
+        def close() -> object:
+            return update_delivery_cycle(
+                provider_id=provider.id,
+                cycle_id=cycle.id,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
+
+        outcomes = run_concurrently(close, close)
+
+        assert sum(isinstance(o, CycleAlreadyClosed) for o in outcomes) == 1
+        assert sum(not isinstance(o, Exception) for o in outcomes) == 1

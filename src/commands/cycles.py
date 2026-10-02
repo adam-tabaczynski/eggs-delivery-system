@@ -53,9 +53,8 @@ def update_delivery_cycle(
         cycle = uow.cycles.get(cycle_id)
         if cycle is None or cycle.provider_id != provider_id:
             raise CycleNotFound()
-        if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
+        if not uow.cycles.close_if_open(cycle, now=now):
             raise CycleAlreadyClosed()
-        cycle.status = DeliveryCycleStatus.CLOSED
         uow.commit()
         return DeliveryCycleRead.from_model(
             cycle, now=now, allocated_eggs=uow.cycles.get_allocated_eggs(cycle.id)

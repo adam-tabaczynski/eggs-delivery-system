@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import NamedTuple, Protocol
 
 from src.models import DeliveryCycle
@@ -14,6 +15,8 @@ class DeliveryCycleRepository(Protocol):
     def get(self, cycle_id: int) -> DeliveryCycle | None: ...
 
     def get_for_update(self, cycle_id: int) -> DeliveryCycle | None: ...
+
+    def close_if_open(self, cycle: DeliveryCycle, *, now: datetime) -> bool: ...
 
     def get_allocated_eggs(
         self, cycle_id: int, *, exclude_order_id: int | None = None

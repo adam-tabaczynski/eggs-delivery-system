@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ScalarSelect, func, select
+from sqlalchemy import ScalarSelect, func, select, update
 from sqlalchemy.orm import Session
 
 from src.core.interfaces.cycle_repository import (
     CycleWithAllocatedEggs,
     DeliveryCycleRepository,
 )
-from src.models import DeliveryCycle, Order, OrderStatus
+from src.models import DeliveryCycle, DeliveryCycleStatus, Order, OrderStatus
 
 
 class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
@@ -28,6 +29,19 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
             select(DeliveryCycle).where(DeliveryCycle.id == cycle_id).with_for_update()
         )
         return self.session.scalars(stmt).first()
+
+    def close_if_open(self, cycle: DeliveryCycle, *, now: datetime) -> bool:
+        stmt = (
+            update(DeliveryCycle)
+            .where(
+                DeliveryCycle.id == cycle.id,
+                DeliveryCycle.status == DeliveryCycleStatus.OPEN,
+                DeliveryCycle.cutoff_at > now,
+            )
+            .values(status=DeliveryCycleStatus.CLOSED)
+            .returning(DeliveryCycle.id)
+        )
+        return self.session.execute(stmt).scalar_one_or_none() is not None
 
     def get_allocated_eggs(
         self, cycle_id: int, *, exclude_order_id: int | None = None

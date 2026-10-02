@@ -33,11 +33,11 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 | # | Rule | Enforced in |
 |---|------|-------------|
 | 1 | Provider and Customer `email` unique (exact string, case-sensitive) | DB unique constraint + `register_customer` pre-check |
-| 2 | Cycle `max_eggs >= 1` | Schema (`DeliveryCycleCreate`) only |
+| 2 | Cycle `1 <= max_eggs <= 10_000` (business ceiling for one Provider's delivery run) → else 422 `request_validation` | Schema (`DeliveryCycleCreate`) only |
 | 3 | Cycle `delivery_at` / `cutoff_at` timezone-aware | Schema only |
 | 4 | Cycle `cutoff_at < delivery_at` | Schema only |
 | 5 | Closing a cycle is one-way; closing an already (effectively) closed cycle → 409 `cycle_already_closed` | `update_delivery_cycle` |
-| 6 | Order `quantity >= 1` | Schema (`OrderCreate`, `OrderUpdate`) only |
+| 6 | Order `quantity >= 1`, any whole number of eggs (no carton multiples). No per-order cap: `max_eggs` bounds it through #10 | Schema (`OrderCreate`, `OrderUpdate`) only |
 | 7 | Place / update / cancel an order only while cycle is effectively `open` → else 409 `cycle_already_closed` | `place_order`, `update_order` |
 | 8 | Cancel is one-way; any change to a cancelled order → 409 `order_already_cancelled` | `update_order` |
 | 9 | PATCH order changes exactly one of `quantity` / `status` | Schema (`OrderUpdate`) |
@@ -48,7 +48,7 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 | 14 | Every order write locks its cycle row (`SELECT ... FOR UPDATE`) before any check, so writes to the same cycle run one at a time; `update_order` re-reads the order (`session.refresh`) after taking the lock, since the session's copy could be stale | `place_order`, `update_order` |
 | 15 | Cycle `cutoff_at` in the future at creation (`cutoff_at > now`), so a new cycle is never already effectively closed → else 422 `cycle_cutoff_not_in_future` | `create_delivery_cycle` (checked after the Provider lookup) |
 
-"Schema only" means the rule is checked at the HTTP boundary but not in the DB.
+"Schema only" means the rule is checked at the HTTP boundary but not in the DB. This is deliberate: the API is the only write path, so there are no `CHECK` constraints for #2 / #6.
 
 Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behaviour: [ADR 0001](adr/0001-cycle-row-lock-for-order-writes.md). "Provider: cancel cycle" and "Provider: update delivery cycle" (Planned rules, below) must take the same lock.
 
@@ -94,7 +94,7 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 - `cutoff_at` / `delivery_at` / `max_eggs` can be updated only while the cycle is effectively `open`. An update can never reopen a closed cycle.
 - A new `cutoff_at` must be in the future → 422 `cycle_cutoff_not_in_future` (`CycleCutoffNotInFuture`, the same check as invariant #15, in the command with `Clock`).
 - `cutoff_at < delivery_at` must hold for the cycle after the update, comparing each field in the body against the stored value of the other. The schema can't do this for a partial body, so it lives in the command → 422 (error code to be decided when the item is built).
-- `max_eggs` can't go below the allocated eggs → 409 `cycle_capacity_exceeded`.
+- `max_eggs` keeps the creation bounds (#2) and can't go below the allocated eggs → 409 `cycle_capacity_exceeded`.
 - The update takes the cycle-row lock.
 
 ### Location and route sheet (Roadmap: Geospatial)
@@ -107,7 +107,6 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 ## Open questions
 
 - **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
-- **DB-level checks** (#2, #6): add `CHECK` constraints, or keep these rules in schemas only? (See the Roadmap's optional constraints item.)
 - **Email case**: `A@x.com` and `a@x.com` count as different customers. Normalise? (Probably with `EmailStr` in Auth.)
 - **Customer cycle list**: returns every cycle, including closed and past ones. Filtering comes later (Roadmap).
 

@@ -9,6 +9,7 @@ paths:
 
 - `unit/` — pure functions, model methods, and custom schema validators (`field_validator` / `model_validator` in `schemas.py`); no DB, no fakes, no mocks of UoW / Session; do not test declarative Pydantic constraints (`Field(ge=...)`, `min_length`, `Literal`, `extra="forbid"`)
 - `integration/commands/`, `integration/queries/` — one module + one class per command/query (`class TestPlaceOrder:`); business rules are tested here only
+  - The main test layer: cover every business rule, state transition, error path and race; one test per distinct branch, so cases that hit the same branch share a test
 - `integration/repositories/`, `integration/test_uow.py` — persistence: constraints, aggregates, commit/rollback
 - `functional/` — `TestClient`; one directory per resource (`customers/`, `cycles/`, `orders/`, grouped like `controllers/`), one module + one class per endpoint; JSON only, no Session
   - Happy path: one per argument mapping (e.g. update order: quantity, soft cancel)
@@ -19,6 +20,7 @@ paths:
 ## Setup
 
 - Build rows with `tests/generators.py` (`make_*`); never call commands for setup, never add ad-hoc `_add_*` helpers
+- Pass the fields a test is about explicitly (e.g. `status=OrderStatus.OPEN`), even when they equal the default; leave the rest at defaults
 - Generators take foreign keys as required args; create parents explicitly and pass their ids
 - Assign each generated parent to its own variable (`customer`, `other_customer`); do not nest calls like `customer_id=make_customer().id`
 - Generator defaults: constants in the signature; `X | None = None` only for per-call values (uuid email, times relative to now)
@@ -27,8 +29,9 @@ paths:
 
 ## Assertions
 
-- Command/query tests assert the returned DTO against inputs and generated rows; do not read back through a new UoW
+- Command/query tests assert only the fields that prove the rule (e.g. `status`, the updated `quantity`, `updated_at` newer than before), from the returned DTO; do not read back through a new UoW
   - Exception: read back (a query, or a new UoW) when the outcome isn't in the returned DTO or the inputs: concurrency tests (what's left after the race), and side effects on other rows that the DTO doesn't show
+- Functional happy paths assert the full response body; they are the one place every field is checked
 - Failure cases assert only the leaf error (`CycleNotFound`, `CycleCapacityExceeded`)
 - `repositories/` and `test_uow.py` read back via UoW as a rule; they assert `NotFoundError` / `ConflictError`
 - Queries that read across all rows (e.g. `list_cycles_for_customer`) assert only on rows the test created; earlier methods in the class leave rows behind

@@ -17,6 +17,11 @@ All application source lives under `src/`.
 - `core/` — interfaces + integrations (e.g. SQLAlchemy engine/Base/UoW); `Clock` at `core/clock.py`; exception bases and buckets in `core/exceptions/`; settings stay at `src/settings.py`
 - `models.py` / `schemas.py` — mapped classes and HTTP DTOs inside `src/` (split to packages later if needed)
 
+## Repository method names
+
+- Verb first (`get_`, `list_by_`, `sum_`, `add`), and name whose data is read even when a parameter already says it: `get_open_order_for_customer(...)`
+- Existence checks return `Model | None`; the command tests `is not None` and owns the rule
+
 ## Shape
 
 - Flat modules by concern (e.g. `commands/orders.py`); no per-domain packages

@@ -22,6 +22,8 @@ class OrderRepository(Protocol):
         self, *, customer_id: int, cycle_id: int
     ) -> Order | None: ...
 
+    def cancel_open_by_cycle_id(self, cycle_id: int) -> None: ...
+
     def update(
         self,
         order: Order,

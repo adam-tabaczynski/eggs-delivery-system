@@ -63,6 +63,7 @@ def update_cycle(
     return update_delivery_cycle(
         provider_id=provider_id,
         cycle_id=cycle_id,
+        status=body.status,
         uow=uow,
         clock=clock,
     )

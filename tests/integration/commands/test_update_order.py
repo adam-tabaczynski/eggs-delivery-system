@@ -5,6 +5,7 @@ from src.core.clock import Clock
 from src.core.integrations.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 from src.exceptions import (
     CustomerNotFound,
+    CycleAlreadyCancelled,
     CycleAlreadyClosed,
     CycleCapacityExceeded,
     OrderAlreadyCancelled,
@@ -123,6 +124,25 @@ class TestUpdateOrder:
         order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
         with pytest.raises(CycleAlreadyClosed):
+            update_order(
+                customer_id=customer.id,
+                order_id=order.id,
+                quantity=12,
+                uow=SqlAlchemyUnitOfWork(),
+                clock=Clock(),
+            )
+
+    def test_cancelled_cycle(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(
+            provider_id=provider.id, status=DeliveryCycleStatus.CANCELLED
+        )
+        customer = make_customer()
+        order = make_order(
+            cycle_id=cycle.id, customer_id=customer.id, status=OrderStatus.CANCELLED
+        )
+
+        with pytest.raises(CycleAlreadyCancelled):
             update_order(
                 customer_id=customer.id,
                 order_id=order.id,

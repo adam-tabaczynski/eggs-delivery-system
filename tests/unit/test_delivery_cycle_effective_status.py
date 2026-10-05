@@ -33,3 +33,11 @@ def test_stored_closed_before_cutoff() -> None:
     cycle = DeliveryCycle(status=DeliveryCycleStatus.CLOSED, cutoff_at=cutoff_at)
 
     assert cycle.effective_status(clock.datetime_now()) is DeliveryCycleStatus.CLOSED
+
+
+def test_stored_cancelled_after_cutoff() -> None:
+    clock = Clock()
+    cutoff_at = clock.move_datetime_backward(days=1)
+    cycle = DeliveryCycle(status=DeliveryCycleStatus.CANCELLED, cutoff_at=cutoff_at)
+
+    assert cycle.effective_status(clock.datetime_now()) is DeliveryCycleStatus.CANCELLED

@@ -30,6 +30,10 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
         )
         return self.session.scalars(stmt).first()
 
+    def refresh(self, cycle: DeliveryCycle) -> DeliveryCycle:
+        self.session.refresh(cycle)
+        return cycle
+
     def close_if_open(self, cycle: DeliveryCycle, *, now: datetime) -> bool:
         stmt = (
             update(DeliveryCycle)
@@ -42,6 +46,12 @@ class SqlAlchemyDeliveryCycleRepository(DeliveryCycleRepository):
             .returning(DeliveryCycle.id)
         )
         return self.session.execute(stmt).scalar_one_or_none() is not None
+
+    def update(
+        self, cycle: DeliveryCycle, *, status: DeliveryCycleStatus
+    ) -> DeliveryCycle:
+        cycle.status = status
+        return cycle
 
     def get_allocated_eggs(
         self, cycle_id: int, *, exclude_order_id: int | None = None

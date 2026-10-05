@@ -2,13 +2,12 @@ from src.core.clock import Clock
 from src.core.interfaces.unit_of_work import UnitOfWork
 from src.exceptions import (
     CustomerNotFound,
-    CycleAlreadyClosed,
     CycleNotFound,
     OpenOrderAlreadyExists,
     OrderAlreadyCancelled,
     OrderNotFound,
 )
-from src.models import DeliveryCycleStatus, Order, OrderStatus
+from src.models import Order, OrderStatus
 from src.schemas import OrderRead
 
 
@@ -27,8 +26,7 @@ def place_order(
         cycle = uow.cycles.get_for_update(cycle_id)
         if cycle is None:
             raise CycleNotFound()
-        if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
-            raise CycleAlreadyClosed()
+        cycle.ensure_open(now)
         open_order = uow.orders.get_open_order_for_customer(
             customer_id=customer_id, cycle_id=cycle_id
         )
@@ -71,8 +69,7 @@ def update_order(
         # Re-read after the lock: another writer may have changed this order
         # while we were waiting for it, and our in-memory copy is now stale.
         uow.orders.refresh(order)
-        if cycle.effective_status(now) is DeliveryCycleStatus.CLOSED:
-            raise CycleAlreadyClosed()
+        cycle.ensure_open(now)
         if order.status is OrderStatus.CANCELLED:
             raise OrderAlreadyCancelled()
         if quantity is not None:

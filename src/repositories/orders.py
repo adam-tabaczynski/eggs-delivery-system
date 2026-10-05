@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from src.core.interfaces.order_repository import OrderRepository
@@ -55,6 +55,14 @@ class SqlAlchemyOrderRepository(OrderRepository):
             Order.status == OrderStatus.OPEN,
         )
         return self.session.scalars(stmt).first()
+
+    def cancel_open_by_cycle_id(self, cycle_id: int) -> None:
+        stmt = (
+            update(Order)
+            .where(Order.cycle_id == cycle_id, Order.status == OrderStatus.OPEN)
+            .values(status=OrderStatus.CANCELLED)
+        )
+        self.session.execute(stmt)
 
     def update(
         self,

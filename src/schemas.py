@@ -55,7 +55,7 @@ class PatchModel(BaseModel):
 
 
 class DeliveryCycleUpdate(PatchModel):
-    status: Literal[DeliveryCycleStatus.CLOSED]
+    status: Literal[DeliveryCycleStatus.CLOSED, DeliveryCycleStatus.CANCELLED]
 
 
 class DeliveryCycleRead(BaseModel):

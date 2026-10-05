@@ -78,8 +78,11 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Customer: see allocated_eggs / max_eggs on cycle list
 - [x] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
 - [x] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
-- [ ] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
+- [x] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
+- [ ] Refactor: cycle close takes the cycle-row lock and checks its status on the model (`ensure_closable`, plus `ensure_cancellable` for cancel); drop `close_if_open` / `refresh` so repositories only fetch and lock. `get_for_update` uses `populate_existing` so a cycle loaded before the lock is re-read; one shared alias for the PATCH status `Literal[CLOSED, CANCELLED]` (`schemas.py` + `commands/cycles.py`). ADR superseding the conditional-UPDATE close; record in `.claude/rules/src-layers.md` that state-transition rules live on the model behind the row lock, never in repository `WHERE` clauses
+- [ ] Idempotent status PATCHes: same-state close / cancel (cycle) and cancel (order) → 200 with no write; only disallowed transitions → 409 (settle check order for cancelling an order in a cancelled cycle in `docs/domain.md` first)
 - [ ] Refactor: class-based commands and queries
+- [ ] Refactor tests: functional tests assert every output field; integration tests assert only the fields relevant to the test (e.g. `result.id == cycle.id`, `result.status is DeliveryCycleStatus.CANCELLED`)
 
 
 

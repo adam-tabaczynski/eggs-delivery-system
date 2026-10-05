@@ -22,6 +22,20 @@ class TestUpdateDeliveryCycle:
         assert body["status"] == "closed"
         assert body["allocated_eggs"] == 0
 
+    def test_cancels_cycle(self) -> None:
+        provider = make_provider()
+        cycle = make_cycle(provider_id=provider.id)
+
+        response = client.patch(
+            f"/providers/{provider.id}/cycles/{cycle.id}",
+            json={"status": "cancelled"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["id"] == cycle.id
+        assert body["status"] == "cancelled"
+        assert body["allocated_eggs"] == 0
+
     def test_unknown_cycle(self) -> None:
         provider = make_provider()
 

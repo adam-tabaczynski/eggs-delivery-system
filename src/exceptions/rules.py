@@ -38,6 +38,20 @@ class CycleAlreadyClosed(ConflictError):
         super().__init__(message)
 
 
+class CycleAlreadyCancelled(ConflictError):
+    code = "cycle_already_cancelled"
+
+    def __init__(self, message: str = "Cycle is already cancelled") -> None:
+        super().__init__(message)
+
+
+class CycleDeliveryPassed(ConflictError):
+    code = "cycle_delivery_passed"
+
+    def __init__(self, message: str = "Cycle delivery_at has passed") -> None:
+        super().__init__(message)
+
+
 class CycleCutoffNotInFuture(UnprocessableError):
     code = "cycle_cutoff_not_in_future"
 

@@ -16,10 +16,11 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 - **Provider**: the single egg seller. Seeded via `docker/seed.sql`; there is no registration API.
 - **Customer**: registers via `POST /customers`. Identified by `customer_id` in the path until Auth lands.
 - **Delivery cycle**: one delivery date offered by the Provider, with a `cutoff_at` for ordering and a `max_eggs` capacity.
-- **Stored status** (cycle): `open` / `closed` as persisted. Only the Provider's explicit close changes it.
-- **Effective status** (cycle): `closed` if stored status is `closed` **or** `now >= cutoff_at`; otherwise `open`. Every API response and every rule uses the effective status (`DeliveryCycle.effective_status`).
+- **Stored status** (cycle): `open` / `closed` / `cancelled` as persisted. Only the Provider's explicit close or cancel changes it: `open → closed → cancelled` or `open → cancelled`. `closed` and `cancelled` are both final; there is no reopen (to undo a mistaken cancel, the Provider creates a new cycle).
+- **Effective status** (cycle): `cancelled` if stored as `cancelled`; otherwise `closed` if stored as `closed` **or** `now >= cutoff_at`; otherwise `open`. Every API response and every rule uses the effective status (`DeliveryCycle.effective_status`).
+- **Frozen order book**: after cutoff, orders don't change. The only exception is a Provider cycle cancel. There is no per-order shortfall handling: the Provider sorts that out with customers directly.
 - **Order**: a Customer's request for `quantity` eggs in one cycle. Status is `open` or `cancelled`.
-- **Allocated eggs** (`allocated_eggs`): sum of `quantity` over the cycle's `open` orders. Cancelled orders do not count. Computed on read, not stored. The same rule applies whatever the cycle's status: a closed cycle shows its frozen total.
+- **Allocated eggs** (`allocated_eggs`): sum of `quantity` over the cycle's `open` orders. Cancelled orders do not count. Computed on read, not stored. The same rule applies whatever the cycle's status: a closed cycle shows its frozen total, and a cancelled cycle shows 0 (the cancel leaves no `open` orders).
 - **FCFS**: first come, first served. Orders are accepted while allocated eggs plus the new quantity fit within `max_eggs`; otherwise they are rejected.
 
 ## Design decisions
@@ -30,27 +31,31 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 
 ## Invariants
 
+**Enforced in** names the method that holds the rule, not every caller; find callers by search. Name a command only while the check lives inline in it.
+
 | # | Rule | Enforced in |
 |---|------|-------------|
 | 1 | Provider and Customer `email` unique (exact string, case-sensitive) | DB unique constraint + `register_customer` pre-check |
 | 2 | Cycle `1 <= max_eggs <= 10_000` (business ceiling for one Provider's delivery run) → else 422 `request_validation` | Schema (`DeliveryCycleCreate`) only |
 | 3 | Cycle `delivery_at` / `cutoff_at` timezone-aware | Schema only |
 | 4 | Cycle `cutoff_at < delivery_at` | Schema only |
-| 5 | Closing a cycle is one-way; closing an already (effectively) closed cycle → 409 `cycle_already_closed`. Done as one conditional `UPDATE ... WHERE status = 'open' AND cutoff_at > now`, 0 rows → 409, so a concurrent close can't both succeed or overwrite a final status | `update_delivery_cycle` via `close_if_open` |
+| 5 | Closing a cycle is one-way; closing an already (effectively) closed cycle → 409 `cycle_already_closed`, a cancelled one → 409 `cycle_already_cancelled`. Done as one conditional `UPDATE ... WHERE status = 'open' AND cutoff_at > now`; on 0 rows the cycle is re-read to pick the 409, so a concurrent close or cancel can't both succeed or overwrite a final status | `update_delivery_cycle` via `close_if_open` |
 | 6 | Order `quantity >= 1`, any whole number of eggs (no carton multiples). No per-order cap: `max_eggs` bounds it through #10 | Schema (`OrderCreate`, `OrderUpdate`) only |
-| 7 | Place / update / cancel an order only while cycle is effectively `open` → else 409 `cycle_already_closed` | `place_order`, `update_order` |
+| 7 | Place / update / cancel an order only while cycle is effectively `open` → else 409 `cycle_already_closed`, or `cycle_already_cancelled` if the cycle is cancelled | `DeliveryCycle.ensure_open`, called by `place_order`, `update_order` |
 | 8 | Cancel is one-way; any change to a cancelled order → 409 `order_already_cancelled` | `update_order` |
 | 9 | PATCH order changes exactly one of `quantity` / `status` | Schema (`OrderUpdate`) |
 | 10 | Allocated eggs + new/changed quantity `<= max_eggs` → else 409 `cycle_capacity_exceeded` | `place_order`, `update_order`, both behind the cycle-row lock (#14) |
 | 11 | A Customer can only see / change their own orders; someone else's order → 404 `order_not_found` | `update_order`, `list_orders_for_customer` |
-| 12 | A Provider can only close their own cycles or list their orders; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle`, `list_orders_for_cycle` |
+| 12 | A Provider can only close or cancel their own cycles or list their orders; someone else's cycle → 404 `cycle_not_found` | `update_delivery_cycle`, `list_orders_for_cycle` |
 | 13 | At most one `open` order per Customer per cycle; POST when one exists → 409 `open_order_already_exists` (change quantity with PATCH; the 409 has no order id, find it via `GET /customers/{id}/orders`). Cancelled orders don't count | `place_order`, behind the cycle-row lock (#14); no DB index |
-| 14 | Every order write locks its cycle row (`SELECT ... FOR UPDATE`) before any check, so writes to the same cycle run one at a time; `update_order` re-reads the order (`session.refresh`) after taking the lock, since the session's copy could be stale | `place_order`, `update_order` |
+| 14 | Every write to a cycle's orders (order writes and the cycle cancel) locks the cycle row (`SELECT ... FOR UPDATE`) before any check, so writes to the same cycle run one at a time; a command that loaded an order before the lock re-reads it (`session.refresh`) after taking it, since the session's copy could be stale | `get_for_update` (every such write locks through it); re-read: `update_order` |
 | 15 | Cycle `cutoff_at` in the future at creation (`cutoff_at > now`), so a new cycle is never already effectively closed → else 422 `cycle_cutoff_not_in_future` | `create_delivery_cycle` (checked after the Provider lookup) |
+| 16 | The Provider can cancel their own cycle while `now < delivery_at`, including after cutoff or an explicit close. Already cancelled → 409 `cycle_already_cancelled` (checked first); at or after `delivery_at` → 409 `cycle_delivery_passed` | `update_delivery_cycle` (`status: cancelled`) |
+| 17 | Cancelling a cycle moves all its `open` orders to `cancelled` (bumping their `updated_at`) in the same transaction, behind the cycle-row lock (#14), so no order write can slip an `open` order into a cancelled cycle. There is no `cancelled_by` field: in a cancelled cycle, an order cancelled by the cascade looks the same as one its Customer cancelled earlier | `update_delivery_cycle` via `cancel_open_by_cycle_id` |
 
 "Schema only" means the rule is checked at the HTTP boundary but not in the DB. This is deliberate: the API is the only write path, so there are no `CHECK` constraints for #2 / #6.
 
-Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behaviour: [ADR 0001](adr/0001-cycle-row-lock-for-order-writes.md). "Provider: cancel cycle" and "Provider: update delivery cycle" (Planned rules, below) must take the same lock.
+Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behaviour: [ADR 0001](adr/0001-cycle-row-lock-for-order-writes.md). The cycle cancel (#17) takes the same lock; "Provider: update delivery cycle" (Planned rules, below) must too.
 
 ## Capabilities (current API)
 
@@ -59,7 +64,7 @@ Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behavio
 | Customer | `POST /customers` | Register |
 | Provider | `POST /providers/{id}/cycles` | Create cycle (stored `open`); `allocated_eggs` is 0 |
 | Provider | `GET /providers/{id}/cycles` | Own cycles, by `delivery_at`, each with `allocated_eggs` |
-| Provider | `PATCH /providers/{id}/cycles/{cycle_id}` | Close only (`status: closed`); response includes `allocated_eggs` |
+| Provider | `PATCH /providers/{id}/cycles/{cycle_id}` | Close (`status: closed`) or cancel (`status: cancelled`); response is the cycle with `allocated_eggs`. Customers aren't notified of a cancel yet (Roadmap: Email) |
 | Provider | `GET /providers/{id}/cycles/{cycle_id}/orders` | The cycle's orders (open + cancelled), by `created_at`; any cycle status; optional `?status=` filter |
 | Customer | `GET /customers/{id}/cycles` | **All** cycles (open + past), by `delivery_at`, each with `allocated_eggs` |
 | Customer | `POST /customers/{id}/orders` | Place order |
@@ -73,21 +78,6 @@ Why #14 is a cycle-row lock, the rejected alternatives, and its blocking behavio
 ## Planned rules
 
 Decided but not yet built. Each rule moves to **Invariants** (with where it's enforced) in the branch that implements it.
-
-### Cycle lifecycle
-
-- Stored status gains `cancelled`: `open → closed → cancelled` or `open → cancelled`. `closed` and `cancelled` are both final; there is no reopen.
-- Effective status: `cancelled` if stored as `cancelled`; otherwise `closed` if stored as `closed` **or** `now >= cutoff_at`; otherwise `open`.
-- After cutoff the order book is frozen. The only thing that changes orders after cutoff is a Provider cycle cancel. There is no per-order shortfall handling: the Provider sorts that out with customers directly.
-
-### Provider: cancel cycle (Roadmap: Orders)
-
-- The Provider can cancel their own cycle any time before `delivery_at`, including after cutoff.
-- Cancelling moves the cycle's `open` orders to the existing `cancelled` order status. The reason is read from the cycle's status, so there's no separate `cancelled_by` field.
-- Cancelling an already cancelled cycle → 409. Closing a cancelled cycle → 409. Cancelling at or after `delivery_at` → 409.
-- The cancel takes the cycle-row lock (`SELECT ... FOR UPDATE`), so the cascade can't race with order writes.
-- To undo a mistaken cancel, the Provider creates a new cycle.
-- A cancelled cycle reports `allocated_eggs: 0` through the usual rule, since the cascade leaves no `open` orders. No special case.
 
 ### Provider: update delivery cycle (Roadmap: Auth)
 
@@ -115,4 +105,6 @@ Out of scope for now; recorded so today's model doesn't block them.
 
 - **Standing orders**: a subscription that places an order automatically when a cycle opens. Deciding who gets capacity first, standing orders or one-off orders, turns FCFS into a real allocation rule.
 - **Per-order fulfilment**: `delivered` / `not_delivered` on orders, and cycle states such as `out_for_delivery` / `completed`.
+- **Accepted orders**: a cycle status meaning "closed, and the Provider has accepted the orders", so Customers know their order will be delivered. Today an effectively closed cycle only means ordering has stopped.
+- **Cancel summary**: the cycle cancel response could report the orders it cancelled (a count, or the list). Today the Provider lists them with `GET …/orders?status=cancelled`, which also includes orders Customers cancelled earlier. Likely needed once Email notifies Customers of a cancel.
 - **Money**: a price per egg on each cycle, amounts owed, and eventually real payments.

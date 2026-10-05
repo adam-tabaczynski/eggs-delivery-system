@@ -28,8 +28,9 @@ paths:
 ## Assertions
 
 - Command/query tests assert the returned DTO against inputs and generated rows; do not read back through a new UoW
+  - Exception: read back (a query, or a new UoW) when the outcome isn't in the returned DTO or the inputs: concurrency tests (what's left after the race), and side effects on other rows that the DTO doesn't show
 - Failure cases assert only the leaf error (`CycleNotFound`, `CycleCapacityExceeded`)
-- Only `repositories/` and `test_uow.py` read back via UoW; they assert `NotFoundError` / `ConflictError`
+- `repositories/` and `test_uow.py` read back via UoW as a rule; they assert `NotFoundError` / `ConflictError`
 - Queries that read across all rows (e.g. `list_cycles_for_customer`) assert only on rows the test created; earlier methods in the class leave rows behind
 - Never assert literal ids
 

@@ -36,7 +36,7 @@ Doorstep Eggs is an **order book** for a local provider. The system's job ends a
 | 2 | Cycle `1 <= max_eggs <= 10_000` (business ceiling for one Provider's delivery run) → else 422 `request_validation` | Schema (`DeliveryCycleCreate`) only |
 | 3 | Cycle `delivery_at` / `cutoff_at` timezone-aware | Schema only |
 | 4 | Cycle `cutoff_at < delivery_at` | Schema only |
-| 5 | Closing a cycle is one-way; closing an already (effectively) closed cycle → 409 `cycle_already_closed` | `update_delivery_cycle` |
+| 5 | Closing a cycle is one-way; closing an already (effectively) closed cycle → 409 `cycle_already_closed`. Done as one conditional `UPDATE ... WHERE status = 'open' AND cutoff_at > now`, 0 rows → 409, so a concurrent close can't both succeed or overwrite a final status | `update_delivery_cycle` via `close_if_open` |
 | 6 | Order `quantity >= 1`, any whole number of eggs (no carton multiples). No per-order cap: `max_eggs` bounds it through #10 | Schema (`OrderCreate`, `OrderUpdate`) only |
 | 7 | Place / update / cancel an order only while cycle is effectively `open` → else 409 `cycle_already_closed` | `place_order`, `update_order` |
 | 8 | Cancel is one-way; any change to a cancelled order → 409 `order_already_cancelled` | `update_order` |
@@ -106,7 +106,6 @@ Decided but not yet built. Each rule moves to **Invariants** (with where it's en
 
 ## Open questions
 
-- **Concurrent cycle close** (#5): two concurrent closes both read `open`, and both return 200 instead of the second getting 409. The close's own `UPDATE` already locks the row, so order writes stay correct. With `cancelled` coming, a racing close could also overwrite `cancelled` with `closed`, breaking "cancelled is final". **Decided, to implement before cancel cycle** (Roadmap) with a conditional update: `UPDATE ... SET status = 'closed' WHERE id = :id AND status = 'open' AND cutoff_at > now()`, 0 rows → 409.
 - **Email case**: `A@x.com` and `a@x.com` count as different customers. Normalise? (Probably with `EmailStr` in Auth.)
 - **Customer cycle list**: returns every cycle, including closed and past ones. Filtering comes later (Roadmap).
 

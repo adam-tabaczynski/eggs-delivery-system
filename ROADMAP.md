@@ -77,7 +77,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Provider: get number of allocated_eggs / max_eggs on delivery cycle
 - [x] Customer: see allocated_eggs / max_eggs on cycle list
 - [x] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
-- [ ] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
+- [x] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
 - [ ] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
 - [ ] Refactor: class-based commands and queries
 

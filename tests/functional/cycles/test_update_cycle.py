@@ -1,37 +1,57 @@
+from unittest.mock import ANY
+
 from fastapi.testclient import TestClient
 
-from tests.generators import make_cycle, make_provider
+from tests.generators import make_customer, make_cycle, make_order, make_provider
+from tests.helpers import json_datetime
 
 
 class TestUpdateDeliveryCycle:
     def test_closes_cycle(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        order = make_order(cycle_id=cycle.id, customer_id=customer.id)
 
         response = client.patch(
             f"/providers/{provider.id}/cycles/{cycle.id}",
             json={"status": "closed"},
         )
         assert response.status_code == 200
-        body = response.json()
-        assert body["id"] == cycle.id
-        assert body["provider_id"] == provider.id
-        assert body["status"] == "closed"
-        assert body["allocated_eggs"] == 0
+        assert response.json() == {
+            "id": cycle.id,
+            "provider_id": provider.id,
+            "delivery_at": json_datetime(cycle.delivery_at),
+            "cutoff_at": json_datetime(cycle.cutoff_at),
+            "max_eggs": cycle.max_eggs,
+            "status": "closed",
+            "allocated_eggs": order.quantity,
+            "created_at": json_datetime(cycle.created_at),
+            "updated_at": ANY,
+        }
 
     def test_cancels_cycle(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
+        customer = make_customer()
+        make_order(cycle_id=cycle.id, customer_id=customer.id)
 
         response = client.patch(
             f"/providers/{provider.id}/cycles/{cycle.id}",
             json={"status": "cancelled"},
         )
         assert response.status_code == 200
-        body = response.json()
-        assert body["id"] == cycle.id
-        assert body["status"] == "cancelled"
-        assert body["allocated_eggs"] == 0
+        assert response.json() == {
+            "id": cycle.id,
+            "provider_id": provider.id,
+            "delivery_at": json_datetime(cycle.delivery_at),
+            "cutoff_at": json_datetime(cycle.cutoff_at),
+            "max_eggs": cycle.max_eggs,
+            "status": "cancelled",
+            "allocated_eggs": 0,
+            "created_at": json_datetime(cycle.created_at),
+            "updated_at": ANY,
+        }
 
     def test_unknown_cycle(self, client: TestClient) -> None:
         provider = make_provider()

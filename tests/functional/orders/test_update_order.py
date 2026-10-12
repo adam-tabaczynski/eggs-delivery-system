@@ -1,6 +1,9 @@
+from unittest.mock import ANY
+
 from fastapi.testclient import TestClient
 
 from tests.generators import make_customer, make_cycle, make_order, make_provider
+from tests.helpers import json_datetime
 
 
 class TestUpdateOrder:
@@ -15,10 +18,15 @@ class TestUpdateOrder:
             json={"quantity": 12},
         )
         assert response.status_code == 200
-        body = response.json()
-        assert body["id"] == order.id
-        assert body["quantity"] == 12
-        assert body["status"] == "open"
+        assert response.json() == {
+            "id": order.id,
+            "cycle_id": cycle.id,
+            "customer_id": customer.id,
+            "quantity": 12,
+            "status": "open",
+            "created_at": json_datetime(order.created_at),
+            "updated_at": ANY,
+        }
 
     def test_soft_cancel(self, client: TestClient) -> None:
         provider = make_provider()
@@ -31,10 +39,15 @@ class TestUpdateOrder:
             json={"status": "cancelled"},
         )
         assert response.status_code == 200
-        body = response.json()
-        assert body["id"] == order.id
-        assert body["status"] == "cancelled"
-        assert body["quantity"] == 6
+        assert response.json() == {
+            "id": order.id,
+            "cycle_id": cycle.id,
+            "customer_id": customer.id,
+            "quantity": 6,
+            "status": "cancelled",
+            "created_at": json_datetime(order.created_at),
+            "updated_at": ANY,
+        }
 
     def test_unknown_order(self, client: TestClient) -> None:
         customer = make_customer()

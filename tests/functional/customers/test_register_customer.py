@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 from fastapi.testclient import TestClient
 
 from tests.generators import make_customer
@@ -14,13 +16,14 @@ class TestRegisterCustomer:
             },
         )
         assert response.status_code == 201
-        body = response.json()
-        assert body["first_name"] == "Ada"
-        assert body["last_name"] == "Lovelace"
-        assert body["email"] == "ada@example.com"
-        assert isinstance(body["id"], int)
-        assert "created_at" in body
-        assert "updated_at" in body
+        assert response.json() == {
+            "id": ANY,
+            "first_name": "Ada",
+            "last_name": "Lovelace",
+            "email": "ada@example.com",
+            "created_at": ANY,
+            "updated_at": ANY,
+        }
 
     def test_duplicate_email(self, client: TestClient) -> None:
         existing = make_customer(email="grace@example.com")

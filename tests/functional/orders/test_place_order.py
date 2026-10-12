@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 from fastapi.testclient import TestClient
 
 from tests.generators import make_customer, make_cycle, make_provider
@@ -14,14 +16,15 @@ class TestPlaceOrder:
             json={"cycle_id": cycle.id, "quantity": 6},
         )
         assert response.status_code == 201
-        body = response.json()
-        assert body["cycle_id"] == cycle.id
-        assert body["customer_id"] == customer.id
-        assert body["quantity"] == 6
-        assert body["status"] == "open"
-        assert isinstance(body["id"], int)
-        assert "created_at" in body
-        assert "updated_at" in body
+        assert response.json() == {
+            "id": ANY,
+            "cycle_id": cycle.id,
+            "customer_id": customer.id,
+            "quantity": 6,
+            "status": "open",
+            "created_at": ANY,
+            "updated_at": ANY,
+        }
 
     def test_unknown_customer(self, client: TestClient) -> None:
         provider = make_provider()

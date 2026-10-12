@@ -108,3 +108,4 @@ Out of scope for now; recorded so today's model doesn't block them.
 - **Accepted orders**: a cycle status meaning "closed, and the Provider has accepted the orders", so Customers know their order will be delivered. Today an effectively closed cycle only means ordering has stopped.
 - **Cancel summary**: the cycle cancel response could report the orders it cancelled (a count, or the list). Today the Provider lists them with `GET …/orders?status=cancelled`, which also includes orders Customers cancelled earlier. Likely needed once Email notifies Customers of a cancel.
 - **Money**: a price per egg on each cycle, amounts owed, and eventually real payments.
+- **OpenAPI schema diff**: a CI check (e.g. `oasdiff`) that diffs the generated OpenAPI schema against `main` and flags breaking response changes in one place. Worth it once the API has external clients or changes often, when keeping full-body functional asserts in sync starts to cost more than they catch.

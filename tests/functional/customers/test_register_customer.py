@@ -1,13 +1,10 @@
 from fastapi.testclient import TestClient
 
-from src.main import app
 from tests.generators import make_customer
-
-client = TestClient(app)
 
 
 class TestRegisterCustomer:
-    def test_registers_customer(self) -> None:
+    def test_registers_customer(self, client: TestClient) -> None:
         response = client.post(
             "/customers",
             json={
@@ -25,7 +22,7 @@ class TestRegisterCustomer:
         assert "created_at" in body
         assert "updated_at" in body
 
-    def test_duplicate_email(self) -> None:
+    def test_duplicate_email(self, client: TestClient) -> None:
         existing = make_customer(email="grace@example.com")
 
         response = client.post(
@@ -42,7 +39,7 @@ class TestRegisterCustomer:
             "message": "Email already registered",
         }
 
-    def test_rejects_invalid_body(self) -> None:
+    def test_rejects_invalid_body(self, client: TestClient) -> None:
         response = client.post(
             "/customers",
             json={

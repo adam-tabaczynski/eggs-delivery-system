@@ -1,14 +1,11 @@
 from fastapi.testclient import TestClient
 
 from src.core.clock import Clock
-from src.main import app
 from tests.generators import make_provider
-
-client = TestClient(app)
 
 
 class TestCreateDeliveryCycle:
-    def test_creates_cycle(self) -> None:
+    def test_creates_cycle(self, client: TestClient) -> None:
         clock = Clock()
         provider = make_provider()
 
@@ -30,7 +27,7 @@ class TestCreateDeliveryCycle:
         assert "created_at" in body
         assert "updated_at" in body
 
-    def test_unknown_provider(self) -> None:
+    def test_unknown_provider(self, client: TestClient) -> None:
         clock = Clock()
 
         response = client.post(
@@ -47,7 +44,7 @@ class TestCreateDeliveryCycle:
             "message": "Provider not found",
         }
 
-    def test_rejects_invalid_body(self) -> None:
+    def test_rejects_invalid_body(self, client: TestClient) -> None:
         clock = Clock()
         provider = make_provider()
 

@@ -1,13 +1,10 @@
 from fastapi.testclient import TestClient
 
-from src.main import app
 from tests.generators import make_customer, make_cycle, make_order, make_provider
-
-client = TestClient(app)
 
 
 class TestUpdateOrder:
-    def test_changes_quantity(self) -> None:
+    def test_changes_quantity(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
@@ -23,7 +20,7 @@ class TestUpdateOrder:
         assert body["quantity"] == 12
         assert body["status"] == "open"
 
-    def test_soft_cancel(self) -> None:
+    def test_soft_cancel(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
@@ -39,7 +36,7 @@ class TestUpdateOrder:
         assert body["status"] == "cancelled"
         assert body["quantity"] == 6
 
-    def test_unknown_order(self) -> None:
+    def test_unknown_order(self, client: TestClient) -> None:
         customer = make_customer()
 
         response = client.patch(
@@ -52,7 +49,7 @@ class TestUpdateOrder:
             "message": "Order not found",
         }
 
-    def test_rejects_invalid_body(self) -> None:
+    def test_rejects_invalid_body(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()

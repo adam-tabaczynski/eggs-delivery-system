@@ -1,13 +1,10 @@
 from fastapi.testclient import TestClient
 
-from src.main import app
 from tests.generators import make_customer, make_cycle, make_order, make_provider
-
-client = TestClient(app)
 
 
 class TestListCyclesForProvider:
-    def test_lists_cycles(self) -> None:
+    def test_lists_cycles(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
@@ -21,7 +18,7 @@ class TestListCyclesForProvider:
         assert cycles[0]["max_eggs"] == cycle.max_eggs
         assert cycles[0]["allocated_eggs"] == order.quantity
 
-    def test_unknown_provider(self) -> None:
+    def test_unknown_provider(self, client: TestClient) -> None:
         response = client.get("/providers/0/cycles")
         assert response.status_code == 404
         assert response.json() == {

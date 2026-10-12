@@ -1,13 +1,10 @@
 from fastapi.testclient import TestClient
 
-from src.main import app
 from tests.generators import make_customer, make_cycle, make_provider
-
-client = TestClient(app)
 
 
 class TestPlaceOrder:
-    def test_places_order(self) -> None:
+    def test_places_order(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
@@ -26,7 +23,7 @@ class TestPlaceOrder:
         assert "created_at" in body
         assert "updated_at" in body
 
-    def test_unknown_customer(self) -> None:
+    def test_unknown_customer(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
 
@@ -40,7 +37,7 @@ class TestPlaceOrder:
             "message": "Customer not found",
         }
 
-    def test_rejects_invalid_body(self) -> None:
+    def test_rejects_invalid_body(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()

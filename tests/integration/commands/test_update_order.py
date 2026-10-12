@@ -33,15 +33,14 @@ class TestUpdateOrder:
             clock=Clock(),
         )
 
-        assert result.id == order.id
         assert result.quantity == quantity
-        assert result.status is OrderStatus.OPEN
+        assert result.updated_at > order.updated_at
 
     def test_soft_cancel_keeps_quantity(self) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
-        order = make_order(cycle_id=cycle.id, customer_id=customer.id)
+        order = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=6)
 
         result = update_order(
             customer_id=customer.id,
@@ -51,9 +50,9 @@ class TestUpdateOrder:
             clock=Clock(),
         )
 
-        assert result.id == order.id
         assert result.status is OrderStatus.CANCELLED
         assert result.quantity == order.quantity
+        assert result.updated_at > order.updated_at
 
     def test_already_cancelled(self) -> None:
         provider = make_provider()

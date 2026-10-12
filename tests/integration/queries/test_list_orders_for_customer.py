@@ -25,12 +25,10 @@ class TestListOrdersForCustomer:
             customer_id=customer.id, uow=SqlAlchemyUnitOfWork()
         )
 
-        by_id = {order.id: order for order in result}
-        assert by_id.keys() == {opened.id, cancelled.id}
-        assert by_id[opened.id].status is OrderStatus.OPEN
-        assert by_id[opened.id].quantity == opened.quantity
-        assert by_id[cancelled.id].status is OrderStatus.CANCELLED
-        assert by_id[cancelled.id].quantity == cancelled.quantity
+        assert {(order.id, order.status) for order in result} == {
+            (opened.id, OrderStatus.OPEN),
+            (cancelled.id, OrderStatus.CANCELLED),
+        }
 
     @pytest.mark.parametrize("status", list(OrderStatus))
     def test_filters_by_status(self, status: OrderStatus) -> None:

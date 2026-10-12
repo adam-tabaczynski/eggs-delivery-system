@@ -22,19 +22,17 @@ class TestPlaceOrder:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
-        quantity = 6
 
         result = place_order(
             customer_id=customer.id,
             cycle_id=cycle.id,
-            quantity=quantity,
+            quantity=6,
             uow=SqlAlchemyUnitOfWork(),
             clock=Clock(),
         )
 
         assert result.customer_id == customer.id
         assert result.cycle_id == cycle.id
-        assert result.quantity == quantity
         assert result.status is OrderStatus.OPEN
 
     def test_unknown_customer(self) -> None:

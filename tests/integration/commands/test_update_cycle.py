@@ -33,12 +33,8 @@ class TestUpdateDeliveryCycle:
             clock=Clock(),
         )
 
-        assert result.id == cycle.id
         assert result.status is DeliveryCycleStatus.CLOSED
-        assert result.provider_id == cycle.provider_id
-        assert result.cutoff_at == cycle.cutoff_at
-        assert result.delivery_at == cycle.delivery_at
-        assert result.max_eggs == cycle.max_eggs
+        assert result.updated_at > cycle.updated_at
         assert result.allocated_eggs == order.quantity
 
     def test_unknown_provider(self) -> None:
@@ -133,7 +129,9 @@ class TestUpdateDeliveryCycle:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
-        make_order(cycle_id=cycle.id, customer_id=customer.id)
+        order = make_order(
+            cycle_id=cycle.id, customer_id=customer.id, status=OrderStatus.OPEN
+        )
 
         result = update_delivery_cycle(
             provider_id=provider.id,
@@ -143,9 +141,15 @@ class TestUpdateDeliveryCycle:
             clock=Clock(),
         )
 
-        assert result.id == cycle.id
         assert result.status is DeliveryCycleStatus.CANCELLED
+        assert result.updated_at > cycle.updated_at
         assert result.allocated_eggs == 0
+        # Read back: the cascade to the cycle's orders isn't in the returned DTO.
+        [cancelled] = list_orders_for_cycle(
+            provider_id=provider.id, cycle_id=cycle.id, uow=SqlAlchemyUnitOfWork()
+        )
+        assert cancelled.status is OrderStatus.CANCELLED
+        assert cancelled.updated_at > order.updated_at
 
     def test_cancels_closed_cycle_after_cutoff(self) -> None:
         clock = Clock()

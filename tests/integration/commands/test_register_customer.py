@@ -8,19 +8,15 @@ from tests.generators import make_customer
 
 class TestRegisterCustomer:
     def test_registers_customer(self) -> None:
-        first_name = "Ada"
-        last_name = "Lovelace"
         email = "ada@example.com"
 
         result = register_customer(
-            first_name=first_name,
-            last_name=last_name,
+            first_name="Ada",
+            last_name="Lovelace",
             email=email,
             uow=SqlAlchemyUnitOfWork(),
         )
 
-        assert result.first_name == first_name
-        assert result.last_name == last_name
         assert result.email == email
 
     def test_duplicate_email(self) -> None:

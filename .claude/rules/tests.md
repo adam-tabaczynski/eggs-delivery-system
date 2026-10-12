@@ -16,6 +16,7 @@ paths:
   - One domain error: prefer the 404 for the path resource; otherwise the endpoint's own error (e.g. duplicate email 409)
   - One 422 if the endpoint takes a body
   - Other rule errors belong in `integration/`, not here
+  - Take the `client` fixture (`tests/functional/conftest.py`) as a test argument; never build `TestClient(app)` in a module
 
 ## Setup
 

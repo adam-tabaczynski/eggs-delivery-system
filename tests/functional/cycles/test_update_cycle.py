@@ -1,13 +1,10 @@
 from fastapi.testclient import TestClient
 
-from src.main import app
 from tests.generators import make_cycle, make_provider
-
-client = TestClient(app)
 
 
 class TestUpdateDeliveryCycle:
-    def test_closes_cycle(self) -> None:
+    def test_closes_cycle(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
 
@@ -22,7 +19,7 @@ class TestUpdateDeliveryCycle:
         assert body["status"] == "closed"
         assert body["allocated_eggs"] == 0
 
-    def test_cancels_cycle(self) -> None:
+    def test_cancels_cycle(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
 
@@ -36,7 +33,7 @@ class TestUpdateDeliveryCycle:
         assert body["status"] == "cancelled"
         assert body["allocated_eggs"] == 0
 
-    def test_unknown_cycle(self) -> None:
+    def test_unknown_cycle(self, client: TestClient) -> None:
         provider = make_provider()
 
         response = client.patch(
@@ -49,7 +46,7 @@ class TestUpdateDeliveryCycle:
             "message": "Cycle not found",
         }
 
-    def test_rejects_invalid_body(self) -> None:
+    def test_rejects_invalid_body(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
 

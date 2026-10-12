@@ -1,14 +1,11 @@
 from fastapi.testclient import TestClient
 
-from src.main import app
 from src.models import OrderStatus
 from tests.generators import make_customer, make_cycle, make_order, make_provider
 
-client = TestClient(app)
-
 
 class TestListOrdersForCycle:
-    def test_lists_open_and_cancelled_orders(self) -> None:
+    def test_lists_open_and_cancelled_orders(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
@@ -32,7 +29,7 @@ class TestListOrdersForCycle:
         assert by_id[cancelled.id]["status"] == "cancelled"
         assert by_id[cancelled.id]["quantity"] == 6
 
-    def test_filters_by_status(self) -> None:
+    def test_filters_by_status(self, client: TestClient) -> None:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
@@ -55,7 +52,7 @@ class TestListOrdersForCycle:
             (opened.id, "open")
         ]
 
-    def test_unknown_cycle(self) -> None:
+    def test_unknown_cycle(self, client: TestClient) -> None:
         provider = make_provider()
 
         response = client.get(f"/providers/{provider.id}/cycles/0/orders")

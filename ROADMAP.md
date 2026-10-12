@@ -79,7 +79,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] [Optional] Consider putting constraints on no. of eggs in Orders and DeliveryCycles
 - [x] Conditional cycle close (`UPDATE ... WHERE status = 'open' AND cutoff_at > now()`, 0 rows → 409): concurrent close can't overwrite a final status
 - [x] Provider: cancel cycle before `delivery_at` (stored `cancelled`, open orders cascade to `cancelled`, takes cycle-row lock)
-- [ ] Shared `client` fixture in `tests/functional/conftest.py` instead of a `TestClient(app)` per module; say so in `.claude/rules/tests.md`
+- [x] Shared `client` fixture in `tests/functional/conftest.py` instead of a `TestClient(app)` per module; say so in `.claude/rules/tests.md`
 - [ ] Functional happy paths assert the full response body (`json_datetime` for known datetimes, `ANY` for server-made values)
 - [ ] Integration command/query tests assert only rule-proving fields (e.g. `status`, `updated_at` bumped); read back the cycle-cancel cascade
 - [ ] Refactor: cycle close takes the cycle-row lock and checks its status on the model (`ensure_closable`, plus `ensure_cancellable` for cancel); drop `close_if_open` / `refresh` so repositories only fetch and lock. `get_for_update` uses `populate_existing` so a cycle loaded before the lock is re-read; one shared alias for the PATCH status `Literal[CLOSED, CANCELLED]` (`schemas.py` + `commands/cycles.py`). ADR superseding the conditional-UPDATE close; record in `.claude/rules/src-layers.md` that state-transition rules live on the model behind the row lock, never in repository `WHERE` clauses

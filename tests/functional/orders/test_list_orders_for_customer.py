@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from src.models import OrderStatus
 from tests.generators import make_customer, make_cycle, make_order, make_provider
+from tests.helpers import json_datetime
 
 
 class TestListOrdersForCustomer:
@@ -9,7 +10,12 @@ class TestListOrdersForCustomer:
         provider = make_provider()
         cycle = make_cycle(provider_id=provider.id)
         customer = make_customer()
-        opened = make_order(cycle_id=cycle.id, customer_id=customer.id, quantity=12)
+        opened = make_order(
+            cycle_id=cycle.id,
+            customer_id=customer.id,
+            quantity=12,
+            status=OrderStatus.OPEN,
+        )
         cancelled = make_order(
             cycle_id=cycle.id,
             customer_id=customer.id,
@@ -19,12 +25,26 @@ class TestListOrdersForCustomer:
 
         response = client.get(f"/customers/{customer.id}/orders")
         assert response.status_code == 200
-        by_id = {listed["id"]: listed for listed in response.json()}
-        assert by_id.keys() == {opened.id, cancelled.id}
-        assert by_id[opened.id]["status"] == "open"
-        assert by_id[opened.id]["quantity"] == 12
-        assert by_id[cancelled.id]["status"] == "cancelled"
-        assert by_id[cancelled.id]["quantity"] == 6
+        assert response.json() == [
+            {
+                "id": opened.id,
+                "cycle_id": cycle.id,
+                "customer_id": customer.id,
+                "quantity": 12,
+                "status": "open",
+                "created_at": json_datetime(opened.created_at),
+                "updated_at": json_datetime(opened.updated_at),
+            },
+            {
+                "id": cancelled.id,
+                "cycle_id": cycle.id,
+                "customer_id": customer.id,
+                "quantity": 6,
+                "status": "cancelled",
+                "created_at": json_datetime(cancelled.created_at),
+                "updated_at": json_datetime(cancelled.updated_at),
+            },
+        ]
 
     def test_filters_by_status(self, client: TestClient) -> None:
         provider = make_provider()
@@ -41,8 +61,16 @@ class TestListOrdersForCustomer:
             f"/customers/{customer.id}/orders", params={"status": "cancelled"}
         )
         assert response.status_code == 200
-        assert [(listed["id"], listed["status"]) for listed in response.json()] == [
-            (cancelled.id, "cancelled")
+        assert response.json() == [
+            {
+                "id": cancelled.id,
+                "cycle_id": cycle.id,
+                "customer_id": customer.id,
+                "quantity": cancelled.quantity,
+                "status": "cancelled",
+                "created_at": json_datetime(cancelled.created_at),
+                "updated_at": json_datetime(cancelled.updated_at),
+            }
         ]
 
     def test_unknown_customer(self, client: TestClient) -> None:

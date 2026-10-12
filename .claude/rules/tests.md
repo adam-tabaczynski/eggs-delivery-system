@@ -33,6 +33,8 @@ paths:
 - Command/query tests assert only the fields that prove the rule (e.g. `status`, the updated `quantity`, `updated_at` newer than before), from the returned DTO; do not read back through a new UoW
   - Exception: read back (a query, or a new UoW) when the outcome isn't in the returned DTO or the inputs: concurrency tests (what's left after the race), and side effects on other rows that the DTO doesn't show
 - Functional happy paths assert the full response body; they are the one place every field is checked
+  - One `==` against the whole JSON (a list endpoint: the whole list, or the created row's entry when other modules' rows can show up); known datetimes via `json_datetime` (`tests/helpers.py`), server-made values (`id` of a new row, `created_at` / `updated_at` the request wrote) as `unittest.mock.ANY`
+  - Why: the duplicated shape is deliberate; `response_model` guarantees declared fields, but only the full `==` catches added, renamed or leaked fields and serialization changes. A new response field fails these tests: add it with its real expected value, never `ANY` or a subset check
 - Failure cases assert only the leaf error (`CycleNotFound`, `CycleCapacityExceeded`)
 - `repositories/` and `test_uow.py` read back via UoW as a rule; they assert `NotFoundError` / `ConflictError`
 - Queries that read across all rows (e.g. `list_cycles_for_customer`) assert only on rows the test created; earlier methods in the class leave rows behind

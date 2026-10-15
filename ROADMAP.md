@@ -83,7 +83,7 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Functional happy paths assert the full response body (`json_datetime` for known datetimes, `ANY` for server-made values)
 - [x] Integration command/query tests assert only rule-proving fields (e.g. `status`, `updated_at` bumped); read back the cycle-cancel cascade
 - [x] Make `ROADMAP.md` the only tracker: correct the Issue tracker section in `CLAUDE.md` and `docs/agents/issue-tracker.md`
-- [ ] Record grill output: rules → `docs/domain.md`; deferred ideas → Future extensions or a new Roadmap item; item-scope decisions → sub-bullets under the Roadmap item; lasting trade-offs → ADR. Say so in `CLAUDE.md` **Domain**
+- [x] Record grill output: rules → `docs/domain.md`; deferred ideas → Future extensions or a new Roadmap item; item-scope decisions → sub-bullets under the Roadmap item; lasting trade-offs → ADR. Say so in `CLAUDE.md` **Domain**
 - [ ] Review step before the report: Haiku `test-runner` agent runs `make check` + `make test`, then code review (`mattpocock-skills:code-review` for `feat/` with the Roadmap item as spec; built-in `/code-review` for `fix/`); findings fixed or listed in Follow-ups
 - [ ] Test-list-first for state-transition and concurrency items: Claude proposes the integration test list, user reviews it, then red-green with `mattpocock-skills:tdd`
 - [ ] `/next` skill: remove merged worktrees and branches, pull `main`, pick the next item and flag it if marked `[grill]`, create the worktree; `/ship` ticks the checkbox in the same commit; add `[grill]` markers to remaining items

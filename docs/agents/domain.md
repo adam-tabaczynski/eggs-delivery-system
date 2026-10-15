@@ -19,6 +19,10 @@ If `docs/adr/` doesn't exist, proceed silently. `/domain-modeling` creates it wh
 └── src/
 ```
 
+## Recording grill output
+
+Where rules, deferred ideas, item-scope decisions and trade-offs from a grilling session go: see `CLAUDE.md` **Domain**.
+
 ## Use the glossary's vocabulary
 
 When your output names a domain concept (issue title, refactor proposal, hypothesis, test name), use the term as defined in `docs/domain.md` (e.g. *delivery cycle*, *effective status*, *allocated eggs*). Don't drift to synonyms.

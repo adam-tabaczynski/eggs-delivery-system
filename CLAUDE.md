@@ -38,6 +38,12 @@ Multilayer under `src/`, by concern (not by domain). Layer ownership rules are i
 Rules, glossary and open questions live in `docs/domain.md`; it is the source of truth.
 Before starting a Roadmap item, list the rule questions it raises, settle them, and record the answers in `docs/domain.md` in the same branch.
 
+Record grill output (a grilling session or a rule-question round) in that branch, by kind:
+- Domain rules → `docs/domain.md` (Invariants; Planned rules for later items). Unsettled ones → Open questions.
+- Deferred ideas → `docs/domain.md` Future extensions, or a new `ROADMAP.md` item once the user agrees.
+- Decisions that only scope the current item → indented sub-bullets under its `ROADMAP.md` checkbox.
+- Lasting trade-offs (an approach chosen over rejected alternatives) → ADR `docs/adr/NNNN-<slug>.md`.
+
 ## Scope & roadmap
 - `ROADMAP.md` is the checklist; each checkbox is one squashable branch.
 - Work the next open item unless the user asks otherwise. Do not implement later sections ahead of the list.

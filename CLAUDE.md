@@ -69,11 +69,7 @@ The report ends with **Follow-ups**: issues noticed but not addressed by the dif
 
 ### Issue tracker
 
-GitHub Issues on `adam-tabaczynski/eggs-delivery-system`, via `gh`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default five labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+`ROADMAP.md` is the only tracker: no GitHub Issues or triage labels. When a skill names a ticket, label or tracker operation, map it via `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

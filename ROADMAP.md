@@ -82,9 +82,15 @@ First write path; multilayer dirs so Delivery cycles and Orders stay thin.
 - [x] Shared `client` fixture in `tests/functional/conftest.py` instead of a `TestClient(app)` per module; say so in `.claude/rules/tests.md`
 - [x] Functional happy paths assert the full response body (`json_datetime` for known datetimes, `ANY` for server-made values)
 - [x] Integration command/query tests assert only rule-proving fields (e.g. `status`, `updated_at` bumped); read back the cycle-cancel cascade
+- [ ] Make `ROADMAP.md` the only tracker: correct the Issue tracker section in `CLAUDE.md` and `docs/agents/issue-tracker.md`
+- [ ] Record grill output: rules → `docs/domain.md`; deferred ideas → Future extensions or a new Roadmap item; item-scope decisions → sub-bullets under the Roadmap item; lasting trade-offs → ADR. Say so in `CLAUDE.md` **Domain**
+- [ ] Review step before the report: Haiku `test-runner` agent runs `make check` + `make test`, then code review (`mattpocock-skills:code-review` for `feat/` with the Roadmap item as spec; built-in `/code-review` for `fix/`); findings fixed or listed in Follow-ups
+- [ ] Test-list-first for state-transition and concurrency items: Claude proposes the integration test list, user reviews it, then red-green with `mattpocock-skills:tdd`
+- [ ] `/next` skill: remove merged worktrees and branches, pull `main`, pick the next item and flag it if marked `[grill]`, create the worktree; `/ship` ticks the checkbox in the same commit; add `[grill]` markers to remaining items
 - [ ] Refactor: cycle close takes the cycle-row lock and checks its status on the model (`ensure_closable`, plus `ensure_cancellable` for cancel); drop `close_if_open` / `refresh` so repositories only fetch and lock. `get_for_update` uses `populate_existing` so a cycle loaded before the lock is re-read; one shared alias for the PATCH status `Literal[CLOSED, CANCELLED]` (`schemas.py` + `commands/cycles.py`). ADR superseding the conditional-UPDATE close; record in `.claude/rules/src-layers.md` that state-transition rules live on the model behind the row lock, never in repository `WHERE` clauses
 - [ ] Idempotent status PATCHes: same-state close / cancel (cycle) and cancel (order) → 200 with no write; only disallowed transitions → 409 (settle check order for cancelling an order in a cancelled cycle in `docs/domain.md` first)
 - [ ] Refactor: class-based commands and queries
+- [ ] Section grooming before Auth: `mattpocock-skills:domain-modeling` pass on `docs/domain.md`, `mattpocock-skills:codebase-design` pass, guardrail audit with `mattpocock-skills:writing-for-agents`, batch-grill the Auth items
 
 
 

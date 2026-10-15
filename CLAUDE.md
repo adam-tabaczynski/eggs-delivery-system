@@ -63,7 +63,18 @@ Solo trunk-based workflow: every branch is short-lived, cut from `main`, and squ
 
 **One worktree per branch:** create each branch in its own worktree under `.claude/worktrees/`, named after the branch (`/` → `-`, e.g. `chore-ignore-worktrees`). Never reuse a worktree for a new branch.
 
-**Review before commit:** when the work is done, leave changes uncommitted and stop. Report the worktree path (so the user can open it in VSCode), `git diff --stat`, and the proposed commit(s): subject, body, files in each, and order. Commit, push, and open the PR only after the user confirms. This overrides any default to commit without asking. If the user asks for edits, apply them and propose again.
+**Review before commit:** when the work is done, leave changes uncommitted, run the review step, then report and stop.
+
+Review step:
+1. **Checks:** run the `test-runner` agent (`make check` + `make test`). Fix failures and run it again. Done when both pass, or the remaining failures lie outside the branch's scope (→ Follow-ups).
+2. **Code review**, by branch prefix:
+   - `feat/`: `mattpocock-skills:code-review` with the Roadmap item (checkbox line + sub-bullets) as the spec. The changes are uncommitted, so first `git add -N` the new files, then have it review `git diff HEAD` instead of a commit range.
+   - `fix/`, `refactor/`: built-in `/code-review`.
+   - `chore/`, `docs/`, `test/`: no code review.
+
+   Fix each finding that falls within the Roadmap item, then rerun step 1; list the rest in Follow-ups. Done when every finding is fixed or listed.
+
+Report the worktree path (so the user can open it in VSCode), `git diff --stat`, the review step's outcome (check counts, findings fixed), and the proposed commit(s): subject, body, files in each, and order. Commit, push, and open the PR only after the user confirms. This overrides any default to commit without asking. If the user asks for edits, apply them and propose again.
 
 The report ends with **Follow-ups**: issues noticed but not addressed by the diff (failed or skipped checks, rule gaps, nearby smells, repo hygiene, missing tests), one line each tagged `same branch`, `new branch`, `ROADMAP`, `domain`, or `env`, with where and a suggested action. Write `Follow-ups: none` if nothing came up. Never act on a follow-up without the user's go-ahead.
 
